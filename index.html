@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d1726" />
+  <title>Stock 3D</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="loading" class="loading-screen"><div class="spinner"></div><p>Connexion à Stock 3D…</p></div>
+
+  <section id="setupScreen" class="auth-screen hidden">
+    <div class="auth-card">
+      <div class="brand"><span class="brand-mark">3D</span><div><strong>Stock 3D</strong><small>Configuration requise</small></div></div>
+      <h1>Relier la base de données</h1>
+      <p>Renseigne l’URL et la clé publique Supabase dans le fichier <code>config.js</code>, puis recharge cette page.</p>
+      <pre>window.STOCK3D_CONFIG = {
+  supabaseUrl: "https://...supabase.co",
+  supabaseAnonKey: "..."
+};</pre>
+    </div>
+  </section>
+
+  <section id="authScreen" class="auth-screen hidden">
+    <form id="authForm" class="auth-card">
+      <div class="brand"><span class="brand-mark">3D</span><div><strong>Stock 3D</strong><small>Inventaire synchronisé</small></div></div>
+      <h1>Connexion</h1>
+      <label>Adresse e-mail<input id="authEmail" type="email" required autocomplete="email" /></label>
+      <label>Mot de passe<input id="authPassword" type="password" minlength="6" required autocomplete="current-password" /></label>
+      <button class="btn primary wide" type="submit">Se connecter</button>
+      <button class="btn secondary wide" type="button" id="signupBtn">Créer un compte</button>
+      <p id="authMessage" class="form-message"></p>
+    </form>
+  </section>
+
+  <div id="app" class="app hidden">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand sidebar-brand"><span class="brand-mark">3D</span><div><strong>Stock 3D</strong><small>Joker 3D</small></div></div>
+      <nav>
+        <button class="nav-btn active" data-view="dashboard">▦ <span>Tableau de bord</span></button>
+        <button class="nav-btn" data-view="inventory">▤ <span>Inventaire</span></button>
+        <button class="nav-btn" data-view="movements">⇄ <span>Mouvements</span></button>
+        <button class="nav-btn" data-view="settings">⚙ <span>Paramètres</span></button>
+      </nav>
+      <div class="sidebar-bottom"><span id="syncState">● Synchronisé</span><button id="logoutBtn">Déconnexion</button></div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <button id="menuBtn" class="icon-btn mobile-only">☰</button>
+        <div><p class="eyebrow">GESTION DES PRODUITS ET CONSOMMABLES</p><h1 id="pageTitle">Tableau de bord</h1></div>
+        <button id="addProductTop" class="btn primary">＋ Ajouter un produit</button>
+      </header>
+
+      <section id="dashboardView" class="view active">
+        <div class="stats-grid">
+          <article class="stat-card"><span>Références actives</span><strong id="statProducts">0</strong></article>
+          <article class="stat-card"><span>Valeur du stock</span><strong id="statValue">0 €</strong></article>
+          <article class="stat-card warning"><span>Stocks faibles</span><strong id="statLow">0</strong></article>
+          <article class="stat-card danger"><span>Produits épuisés</span><strong id="statOut">0</strong></article>
+        </div>
+        <div class="dashboard-grid">
+          <article class="panel"><div class="panel-head"><div><h2>Stocks à surveiller</h2><p>Produits faibles ou épuisés</p></div></div><div id="dashboardAlerts"></div></article>
+          <article class="panel"><div class="panel-head"><div><h2>Derniers mouvements</h2><p>Actualisés en temps réel</p></div></div><div id="recentMovements"></div></article>
+        </div>
+      </section>
+
+      <section id="inventoryView" class="view">
+        <div class="toolbar panel">
+          <input id="searchInput" placeholder="Rechercher un produit, une référence…" />
+          <select id="categoryFilter"><option value="">Toutes les catégories</option></select>
+          <select id="statusFilter"><option value="">Tous les statuts</option><option value="ok">Disponible</option><option value="low">Stock faible</option><option value="out">Épuisé</option></select>
+        </div>
+        <div class="panel table-panel">
+          <div class="inventory-summary"><span id="inventoryCount">0 produit</span><strong id="inventoryValue">0 €</strong></div>
+          <div class="table-wrap"><table><thead><tr><th>Réf. fournisseur</th><th>Réf. interne</th><th>Produit</th><th>Catégorie</th><th>Fournisseur</th><th>Nuisible ciblé</th><th>Stock</th><th>Prix unitaire</th><th>Valeur stock</th><th>Statut</th><th>Actions</th></tr></thead><tbody id="inventoryBody"></tbody></table></div>
+        </div>
+      </section>
+
+      <section id="movementsView" class="view">
+        <div class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>Date</th><th>Référence</th><th>Produit</th><th>Type</th><th>Quantité</th><th>Technicien</th><th>Utilisateur</th></tr></thead><tbody id="movementsBody"></tbody></table></div></div>
+      </section>
+
+      <section id="settingsView" class="view">
+        <div class="settings-grid">
+          <article class="panel"><div class="panel-head"><div><h2>Catégories</h2><p>Alimente le menu déroulant des produits</p></div></div><form id="categoryForm" class="inline-form"><input id="newCategory" required placeholder="Nouvelle catégorie" /><button class="btn primary">Ajouter</button></form><div id="categoryList" class="manage-list"></div></article>
+          <article class="panel"><div class="panel-head"><div><h2>Techniciens</h2><p>Sélectionnés lors des sorties</p></div></div><form id="technicianForm" class="inline-form"><input id="newTechnician" required placeholder="Nom du technicien" /><button class="btn primary">Ajouter</button></form><div id="technicianList" class="manage-list"></div></article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="modalBackdrop" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-head"><div><p class="eyebrow" id="modalEyebrow">PRODUIT</p><h2 id="modalTitle"></h2></div><button class="icon-btn" id="closeModal">×</button></div>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+  <div id="toast" class="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

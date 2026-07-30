@@ -1,0 +1,9 @@
+{
+  "name": "Stock 3D",
+  "short_name": "Stock 3D",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0d1726",
+  "theme_color": "#0d1726",
+  "icons": []
+}
