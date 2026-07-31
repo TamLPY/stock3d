@@ -5,6 +5,14 @@ const el = (id) => document.getElementById(id);
 const state = { products: [], categories: [], technicians: [], movements: [], channel: null };
 let db;
 const euro = (n) => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(Number(n||0));
+const PACKAGE_TYPES = ['unité','carton','boîte','lot','bidon','flacon','bombe','tube','sachet','seau','rouleau','kilogramme','litre','mètre','autre'];
+const CONTENT_UNITS = ['unité','pièce','bombe','tube','sachet','flacon','litre','kilogramme','mètre','rouleau','dose','autre'];
+const safe = (v) => v == null ? '' : v;
+function packageLabel(p){const type=p.stock_package_type||'unité';const mult=Number(p.stock_package_quantity||1);const unit=p.stock_content_unit||'unité';return mult>1?`${type} de ${mult} ${unit}${mult>1&&!unit.endsWith('s')?'s':''}`:type;}
+function priceLabel(p){const amount=Number(p.price_amount ?? p.unit_price ?? 0);const type=p.price_type||'unit';if(type==='package'){const pkg=p.price_package_type||p.stock_package_type||'lot';const qty=Number(p.price_package_quantity||p.stock_package_quantity||1);return `${euro(amount)} / ${pkg}${qty>1?` (${qty} ${p.stock_content_unit||'unités'})`:''}`;}return `${euro(amount)} / ${p.stock_content_unit||'unité'}`;}
+function baseUnitPrice(p){const amount=Number(p.price_amount ?? p.unit_price ?? 0);return (p.price_type||'unit')==='package'?amount/Math.max(Number(p.price_package_quantity||1),1):amount;}
+function stockValue(p){return Number(p.stock||0)*Math.max(Number(p.stock_package_quantity||1),1)*baseUnitPrice(p);}
+function stockDisplay(p){return `${p.stock} ${packageLabel(p)}`;}
 const dt = (v) => new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short'}).format(new Date(v));
 const esc = (s='') => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function status(p){const s=Number(p.stock); if(s<=0)return ['out','Épuisé']; if(s<=Number(p.alert_threshold))return ['low','Stock faible']; return ['ok','Disponible'];}
@@ -47,12 +55,12 @@ async function reloadTechnicians(){const {data}=await db.from('technicians').sel
 function renderAll(){renderDashboard();renderInventory();renderMovements();renderSettings();populateFilters()}
 function renderDashboard(){
   const low=state.products.filter(p=>status(p)[0]==='low'),out=state.products.filter(p=>status(p)[0]==='out');
-  el('statProducts').textContent=state.products.length;el('statValue').textContent=euro(state.products.reduce((a,p)=>a+Number(p.stock)*Number(p.unit_price),0));el('statLow').textContent=low.length;el('statOut').textContent=out.length;
-  el('dashboardAlerts').innerHTML=[...out,...low].slice(0,8).map(p=>`<div class="alert-row"><span class="badge ${status(p)[0]}">${status(p)[1]}</span><div class="row-main"><strong>${esc(p.name)}</strong><small>Stock : ${p.stock} · seuil : ${p.alert_threshold}</small></div></div>`).join('')||'<div class="empty">Aucune alerte</div>';
+  el('statProducts').textContent=state.products.length;el('statValue').textContent=euro(state.products.reduce((a,p)=>a+stockValue(p),0));el('statLow').textContent=low.length;el('statOut').textContent=out.length;
+  el('dashboardAlerts').innerHTML=[...out,...low].slice(0,8).map(p=>`<div class="alert-row"><span class="badge ${status(p)[0]}">${status(p)[1]}</span><div class="row-main"><strong>${esc(p.name)}</strong><small>Stock : ${stockDisplay(p)} · seuil : ${p.alert_threshold}</small></div></div>`).join('')||'<div class="empty">Aucune alerte</div>';
   el('recentMovements').innerHTML=state.movements.slice(0,8).map(m=>movementCard(m)).join('')||'<div class="empty">Aucun mouvement</div>';
 }
 function filtered(){const q=el('searchInput').value.toLowerCase(),cat=el('categoryFilter').value,st=el('statusFilter').value;return state.products.filter(p=>(!q||[p.supplier_reference,p.internal_reference,p.name,p.description,p.supplier,p.target_pest].join(' ').toLowerCase().includes(q))&&(!cat||p.category_id===cat)&&(!st||status(p)[0]===st));}
-function renderInventory(){const list=filtered();el('inventoryCount').textContent=`${list.length} produit${list.length>1?'s':''}`;el('inventoryValue').textContent=euro(list.reduce((a,p)=>a+Number(p.stock)*Number(p.unit_price),0));el('inventoryBody').innerHTML=list.map(p=>{const [k,l]=status(p);return `<tr><td>${esc(p.supplier_reference)||'—'}</td><td><div class="actions"><button class="stock-btn plus" onclick="openMovement('${p.id}','entry')">+</button><button class="stock-btn minus" onclick="openMovement('${p.id}','exit')">−</button></div></td><td><div class="product-name"><strong>${esc(p.name)}</strong><small>${esc(p.description)||'—'}</small></div></td><td>${esc(p.categories?.name)||'—'}</td><td>${esc(p.supplier)||'—'}</td><td>${esc(p.target_pest)||'—'}</td><td><strong>${p.stock}</strong></td><td>${euro(p.unit_price)}</td><td><strong>${euro(Number(p.stock)*Number(p.unit_price))}</strong></td><td><span class="badge ${k}">${l}</span></td><td><div class="actions"><button class="edit-btn" onclick="openProduct('${p.id}')">Modifier</button></div></td></tr>`}).join('')||'<tr><td colspan="11" class="empty">Aucun produit</td></tr>'}
+function renderInventory(){const list=filtered();el('inventoryCount').textContent=`${list.length} produit${list.length>1?'s':''}`;el('inventoryValue').textContent=euro(list.reduce((a,p)=>a+stockValue(p),0));el('inventoryBody').innerHTML=list.map(p=>{const [k,l]=status(p);return `<tr><td>${esc(p.supplier_reference)||'—'}</td><td><div class="actions"><button class="stock-btn plus" onclick="openMovement('${p.id}','entry')">+</button><button class="stock-btn minus" onclick="openMovement('${p.id}','exit')">−</button></div></td><td><div class="product-name"><strong>${esc(p.name)}</strong><small>${esc(p.description)||'—'}</small></div></td><td>${esc(p.categories?.name)||'—'}</td><td>${esc(p.supplier)||'—'}</td><td>${esc(p.target_pest)||'—'}</td><td><strong>${stockDisplay(p)}</strong><small class="cell-note">${Number(p.stock_package_quantity||1)>1?`${Number(p.stock||0)*Number(p.stock_package_quantity||1)} ${esc(p.stock_content_unit||'unités')} au total`:''}</small></td><td>${priceLabel(p)}<small class="cell-note">${(p.price_type||'unit')==='package'?`${euro(baseUnitPrice(p))} / ${esc(p.stock_content_unit||'unité')}`:''}</small></td><td><strong>${euro(stockValue(p))}</strong></td><td><span class="badge ${k}">${l}</span></td><td><div class="actions"><button class="edit-btn" onclick="openProduct('${p.id}')">Modifier</button></div></td></tr>`}).join('')||'<tr><td colspan="11" class="empty">Aucun produit</td></tr>'}
 function movementCard(m){return `<div class="movement-row"><span class="badge ${m.movement_type}">${m.movement_type==='entry'?'Entrée':'Sortie'}</span><div class="row-main"><strong>${esc(m.products?.name||'Produit')}</strong><small>${m.quantity} · ${esc(m.technicians?.name||'—')} · ${dt(m.created_at)}</small></div></div>`}
 function renderMovements(){el('movementsBody').innerHTML=state.movements.map(m=>`<tr><td>${dt(m.created_at)}</td><td>${esc(m.products?.internal_reference)||'—'}</td><td>${esc(m.products?.name)||'—'}</td><td><span class="badge ${m.movement_type}">${m.movement_type==='entry'?'Entrée':'Sortie'}</span></td><td>${m.quantity}</td><td>${esc(m.technicians?.name)||'—'}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">Aucun mouvement</td></tr>'}
 function renderSettings(){el('categoryList').innerHTML=state.categories.map(x=>`<div class="manage-item"><span>${esc(x.name)}</span><button onclick="deleteCategory('${x.id}')">Supprimer</button></div>`).join('');el('technicianList').innerHTML=state.technicians.map(x=>`<div class="manage-item"><span>${esc(x.name)}</span><button onclick="deleteTechnician('${x.id}')">Supprimer</button></div>`).join('')}
@@ -60,8 +68,73 @@ function populateFilters(){const v=el('categoryFilter').value;el('categoryFilter
 
 function modal(title,eyebrow,html){el('modalTitle').textContent=title;el('modalEyebrow').textContent=eyebrow;el('modalContent').innerHTML=html;el('modalBackdrop').classList.remove('hidden')}
 function closeModal(){el('modalBackdrop').classList.add('hidden')}
-window.openProduct=function(id=''){const p=state.products.find(x=>x.id===id)||{};modal(id?'Modifier le produit':'Ajouter un produit','FICHE PRODUIT',`<form id="productForm"><div class="form-grid"><label>Référence fournisseur<input name="supplier_reference" value="${esc(p.supplier_reference)}"></label><label>Référence interne<input name="internal_reference" required value="${esc(p.internal_reference)}"></label><label>Nom du produit<input name="name" required value="${esc(p.name)}"></label><label>Description<input name="description" value="${esc(p.description)}"></label><label>Catégorie<select name="category_id"><option value="">—</option>${state.categories.map(c=>`<option value="${c.id}" ${p.category_id===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label><label>Fournisseur<input name="supplier" value="${esc(p.supplier)}"></label><label>Nuisible ciblé<input name="target_pest" value="${esc(p.target_pest)}"></label><label>Stock<input name="stock" type="number" min="0" step="0.01" required value="${p.stock??0}"></label><label>Seuil d’alerte<input name="alert_threshold" type="number" min="0" step="0.01" required value="${p.alert_threshold??0}"></label><label>Prix unitaire (€)<input name="unit_price" type="number" min="0" step="0.01" required value="${p.unit_price??0}"></label></div><div class="form-actions">${id?'<button type="button" id="deleteProductBtn" class="btn danger">Supprimer</button>':''}<button type="button" class="btn secondary" id="cancelModal">Annuler</button><button class="btn primary">Enregistrer</button></div></form>`);el('cancelModal').onclick=closeModal;el('productForm').onsubmit=async(e)=>{e.preventDefault();const data=Object.fromEntries(new FormData(e.target));['stock','alert_threshold','unit_price'].forEach(k=>data[k]=Number(data[k]));data.category_id=data.category_id||null;const q=id?db.from('products').update(data).eq('id',id):db.from('products').insert(data);const {error}=await q;if(error)toast(error.message);else{closeModal();toast('Produit enregistré')}};if(id)el('deleteProductBtn').onclick=()=>deleteProduct(id)}
-window.openMovement=function(id,type){const p=state.products.find(x=>x.id===id);const isExit=type==='exit';modal(`${isExit?'Sortie':'Entrée'} — ${p.name}`,isExit?'STOCK SORTANT':'STOCK ENTRANT',`<form id="movementForm" class="movement-form"><label>Quantité<input name="quantity" type="number" min="0.01" step="0.01" required autofocus></label>${isExit?`<label>Technicien<select name="technician_id" required><option value="">Sélectionner…</option>${state.technicians.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select></label>`:''}<div class="form-actions"><button type="button" class="btn secondary" id="cancelModal">Annuler</button><button class="btn ${isExit?'danger':'primary'}">Valider</button></div></form>`);el('cancelModal').onclick=closeModal;el('movementForm').onsubmit=async(e)=>{e.preventDefault();const f=new FormData(e.target);const {error}=await db.rpc('change_stock',{p_product_id:id,p_type:type,p_quantity:Number(f.get('quantity')),p_technician_id:f.get('technician_id')||null});if(error)toast(error.message);else{closeModal();toast('Stock mis à jour')}}}
+window.openProduct=function(id=''){
+  const p=state.products.find(x=>x.id===id)||{};
+  const stockType=p.stock_package_type||'unité';
+  const contentUnit=p.stock_content_unit||'unité';
+  const priceType=p.price_type||'unit';
+  const priceAmount=p.price_amount??p.unit_price??0;
+  const pricePackageType=p.price_package_type||stockType;
+  const pricePackageQuantity=p.price_package_quantity||p.stock_package_quantity||1;
+  const options=(values,current)=>values.map(v=>`<option value="${v}" ${v===current?'selected':''}>${v.charAt(0).toUpperCase()+v.slice(1)}</option>`).join('');
+  modal(id?'Modifier le produit':'Ajouter un produit','FICHE PRODUIT',`<form id="productForm">
+    <div class="form-grid">
+      <label>Référence fournisseur<input name="supplier_reference" value="${esc(safe(p.supplier_reference))}"></label>
+      <label>Référence interne<input name="internal_reference" required value="${esc(safe(p.internal_reference))}"></label>
+      <label>Nom du produit<input name="name" required value="${esc(safe(p.name))}"></label>
+      <label>Description<input name="description" value="${esc(safe(p.description))}"></label>
+      <label>Catégorie<select name="category_id"><option value="">—</option>${state.categories.map(c=>`<option value="${c.id}" ${p.category_id===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label>
+      <label>Fournisseur<input name="supplier" value="${esc(safe(p.supplier))}"></label>
+      <label>Nuisible ciblé<input name="target_pest" value="${esc(safe(p.target_pest))}"></label>
+    </div>
+    <div class="form-section"><h3>Stock et conditionnement</h3><div class="form-grid">
+      <label>Quantité en stock<input name="stock" type="number" min="0" step="0.01" required value="${p.stock??0}"></label>
+      <label>Type de stock<select name="stock_package_type" id="stockPackageType">${options(PACKAGE_TYPES,stockType)}</select></label>
+      <label id="stockPackageQuantityLabel">Quantité contenue<input name="stock_package_quantity" id="stockPackageQuantity" type="number" min="0.01" step="0.01" required value="${p.stock_package_quantity??1}"></label>
+      <label>Unité contenue<select name="stock_content_unit">${options(CONTENT_UNITS,contentUnit)}</select></label>
+      <label>Seuil d’alerte<input name="alert_threshold" type="number" min="0" step="0.01" required value="${p.alert_threshold??0}"></label>
+    </div></div>
+    <div class="form-section"><h3>Prix</h3><div class="form-grid">
+      <label>Le prix indiqué correspond à<select name="price_type" id="priceType"><option value="unit" ${priceType==='unit'?'selected':''}>Prix à l’unité</option><option value="package" ${priceType==='package'?'selected':''}>Prix du conditionnement</option></select></label>
+      <label>Prix indiqué (€)<input name="price_amount" type="number" min="0" step="0.01" required value="${priceAmount}"></label>
+      <label class="price-package-field">Type de conditionnement du prix<select name="price_package_type">${options(PACKAGE_TYPES,pricePackageType)}</select></label>
+      <label class="price-package-field">Quantité comprise dans ce prix<input name="price_package_quantity" type="number" min="0.01" step="0.01" value="${pricePackageQuantity}"></label>
+    </div><p class="form-help" id="priceHelp"></p></div>
+    <div class="form-actions">${id?'<button type="button" id="deleteProductBtn" class="btn danger">Supprimer</button>':''}<button type="button" class="btn secondary" id="cancelModal">Annuler</button><button class="btn primary">Enregistrer</button></div>
+  </form>`);
+  const form=el('productForm');
+  const updateDynamicFields=()=>{
+    const isPackage=form.price_type.value==='package';
+    form.querySelectorAll('.price-package-field').forEach(x=>x.classList.toggle('hidden',!isPackage));
+    const qty=Math.max(Number(form.price_package_quantity.value||1),1);
+    const amount=Number(form.price_amount.value||0);
+    el('priceHelp').textContent=isPackage?`Prix calculé par ${form.stock_content_unit.value} : ${euro(amount/qty)}`:`Prix appliqué à chaque ${form.stock_content_unit.value}.`;
+    const simple=['unité','kilogramme','litre','mètre'].includes(form.stock_package_type.value);
+    el('stockPackageQuantityLabel').classList.toggle('hidden',simple);
+    if(simple)form.stock_package_quantity.value=1;
+  };
+  ['price_type','price_amount','price_package_quantity','stock_content_unit','stock_package_type'].forEach(n=>form[n].addEventListener('input',updateDynamicFields));
+  updateDynamicFields();
+  el('cancelModal').onclick=closeModal;
+  form.onsubmit=async(e)=>{
+    e.preventDefault();
+    const data=Object.fromEntries(new FormData(e.target));
+    ['stock','alert_threshold','stock_package_quantity','price_amount','price_package_quantity'].forEach(k=>data[k]=Number(data[k]));
+    data.category_id=data.category_id||null;
+    if(data.price_type==='unit'){
+      data.price_package_type=null;
+      data.price_package_quantity=1;
+      data.unit_price=data.price_amount;
+    }else{
+      data.unit_price=data.price_amount/Math.max(data.price_package_quantity,1);
+    }
+    const q=id?db.from('products').update(data).eq('id',id):db.from('products').insert(data);
+    const {error}=await q;
+    if(error)toast(error.message);else{closeModal();toast('Produit enregistré')}
+  };
+  if(id)el('deleteProductBtn').onclick=()=>deleteProduct(id);
+}
+window.openMovement=function(id,type){const p=state.products.find(x=>x.id===id);const isExit=type==='exit';modal(`${isExit?'Sortie':'Entrée'} — ${p.name}`,isExit?'STOCK SORTANT':'STOCK ENTRANT',`<form id="movementForm" class="movement-form"><label>Quantité (${packageLabel(p)})<input name="quantity" type="number" min="0.01" step="0.01" required autofocus></label>${isExit?`<label>Technicien<select name="technician_id" required><option value="">Sélectionner…</option>${state.technicians.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select></label>`:''}<div class="form-actions"><button type="button" class="btn secondary" id="cancelModal">Annuler</button><button class="btn ${isExit?'danger':'primary'}">Valider</button></div></form>`);el('cancelModal').onclick=closeModal;el('movementForm').onsubmit=async(e)=>{e.preventDefault();const f=new FormData(e.target);const {error}=await db.rpc('change_stock',{p_product_id:id,p_type:type,p_quantity:Number(f.get('quantity')),p_technician_id:f.get('technician_id')||null});if(error)toast(error.message);else{closeModal();toast('Stock mis à jour')}}}
 window.deleteProduct=async function(id){if(!confirm('Supprimer ce produit ?'))return;const {error}=await db.from('products').delete().eq('id',id);if(error)toast(error.message);else{closeModal();toast('Produit supprimé')}}
 window.deleteCategory=async function(id){if(!confirm('Supprimer cette catégorie ? Les produits resteront présents.'))return;const {error}=await db.from('categories').delete().eq('id',id);if(error)toast(error.message)}
 window.deleteTechnician=async function(id){if(!confirm('Retirer ce technicien de la liste ?'))return;const {error}=await db.from('technicians').update({active:false}).eq('id',id);if(error)toast(error.message)}
