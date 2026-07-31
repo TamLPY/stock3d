@@ -193,69 +193,23 @@ window.addEventListener('resize',updateMenuButton);
 init();setTimeout(syncInventoryTopScrollbar,0);
 
 function enableColumnResize(){
-  const table=document.querySelector('#inventoryTableWrap table');
-  if(!table)return;
-
-  const headers=[...table.querySelectorAll('thead th')];
-  if(!headers.length)return;
-
-  let colgroup=table.querySelector('colgroup[data-resizable="1"]');
-  if(!colgroup){
-    colgroup=document.createElement('colgroup');
-    colgroup.dataset.resizable='1';
-    headers.forEach((th,i)=>{
-      const col=document.createElement('col');
-      const saved=Number(localStorage.getItem('inventory_col_'+i));
-      col.style.width=(saved||Math.ceil(th.getBoundingClientRect().width))+'px';
-      colgroup.appendChild(col);
-    });
-    table.insertBefore(colgroup,table.firstChild);
-  }
-
-  const cols=[...colgroup.children];
-  const updateTableWidth=()=>{
-    const total=cols.reduce((sum,col)=>sum+(parseFloat(col.style.width)||80),0);
-    table.style.width=total+'px';
-    table.style.minWidth=total+'px';
-    syncInventoryTopScrollbar();
-  };
-  updateTableWidth();
-
-  headers.forEach((th,i)=>{
-    if(i===headers.length-1||th.querySelector('.col-resizer'))return;
-    th.style.position='relative';
-    const handle=document.createElement('div');
-    handle.className='col-resizer';
-    handle.title='Glisser pour redimensionner la colonne';
-
-    handle.addEventListener('pointerdown',e=>{
-      e.preventDefault();
-      e.stopPropagation();
-      handle.setPointerCapture?.(e.pointerId);
-      document.body.classList.add('is-resizing-column');
-      handle.classList.add('active');
-
-      const startX=e.clientX;
-      const startW=parseFloat(cols[i].style.width)||th.getBoundingClientRect().width;
-
-      const move=ev=>{
-        const width=Math.max(70,Math.round(startW+ev.clientX-startX));
-        cols[i].style.width=width+'px';
-        localStorage.setItem('inventory_col_'+i,String(width));
-        updateTableWidth();
-      };
-      const stop=()=>{
-        document.removeEventListener('pointermove',move);
-        document.removeEventListener('pointerup',stop);
-        document.removeEventListener('pointercancel',stop);
-        document.body.classList.remove('is-resizing-column');
-        handle.classList.remove('active');
-      };
-      document.addEventListener('pointermove',move);
-      document.addEventListener('pointerup',stop,{once:true});
-      document.addEventListener('pointercancel',stop,{once:true});
-    });
-    th.appendChild(handle);
-  });
+const table=document.querySelector('#inventoryTableWrap table');if(!table||table.dataset.resize)return;table.dataset.resize=1;
+const headers=table.querySelectorAll('th');
+headers.forEach((th,i)=>{
+ if(i===headers.length-1)return;
+ th.style.position='relative';
+ const h=document.createElement('div');
+ h.className='col-resizer';
+ h.onmousedown=(e)=>{
+  e.preventDefault();
+  const startX=e.pageX,startW=th.offsetWidth;
+  const rows=[...table.rows];
+  const move=(ev)=>{const w=Math.max(60,startW+ev.pageX-startX);rows.forEach(r=>{if(r.cells[i])r.cells[i].style.width=w+'px';});localStorage.setItem('col_'+i,w);};
+  const up=()=>{document.removeEventListener('mousemove',move);document.removeEventListener('mouseup',up);}
+  document.addEventListener('mousemove',move);document.addEventListener('mouseup',up);
+ };
+ th.appendChild(h);
+ const saved=localStorage.getItem('col_'+i);
+ if(saved){[...table.rows].forEach(r=>{if(r.cells[i])r.cells[i].style.width=saved+'px';});}
 });
 }
