@@ -1,87 +1,12 @@
 
-const columnDefs = [
-  { index: 0, label: 'Stock', locked: true },
-  { index: 1, label: 'Produit' },
-  { index: 2, label: 'Catégorie' },
-  { index: 3, label: 'Réf. fournisseur' },
-  { index: 4, label: 'Fournisseur' },
-  { index: 5, label: 'Nuisible ciblé' },
-  { index: 6, label: 'Stock / conditionnement' },
-  { index: 7, label: 'Prix' },
-  { index: 8, label: 'Valeur stock' },
-  { index: 9, label: 'Statut' },
-  { index: 10, label: 'Actions' }
-];
-const HIDDEN_COLUMNS_KEY = 'stock3dHiddenColumns';
-function getHiddenColumns(){
-  try {
-    const value = JSON.parse(localStorage.getItem(HIDDEN_COLUMNS_KEY) || '[]');
-    return Array.isArray(value) ? value.map(Number).filter(Number.isInteger) : [];
-  } catch (_) {
-    return [];
-  }
-}
-function setHiddenColumns(columns){
-  localStorage.setItem(HIDDEN_COLUMNS_KEY, JSON.stringify([...new Set(columns)].sort((a,b)=>a-b)));
-}
-function applyHiddenColumns(){
-  const table = document.getElementById('inventoryTable');
-  if(!table) return;
-  const hidden = new Set(getHiddenColumns());
-  columnDefs.forEach(({index}) => table.classList.toggle(`hide-col-${index}`, hidden.has(index)));
-  requestAnimationFrame(() => {
-    if(typeof syncInventoryTopScrollbar === 'function') syncInventoryTopScrollbar();
-  });
-}
-function renderColumnsPanel(){
-  const panel = document.getElementById('columnsPanel');
-  if(!panel) return;
-  const hidden = new Set(getHiddenColumns());
-  panel.innerHTML = `
-    <div class="columns-panel-title">Colonnes affichées</div>
-    <div class="columns-list">
-      ${columnDefs.map(({index,label,locked}) => `
-        <label class="column-option ${locked?'is-locked':''}">
-          <input type="checkbox" data-column-index="${index}" ${hidden.has(index)?'':'checked'} ${locked?'disabled':''}>
-          <span>${label}</span>
-        </label>`).join('')}
-    </div>
-    <div class="columns-panel-actions">
-      <button type="button" id="showAllColumns" class="btn secondary">Tout afficher</button>
-      <button type="button" id="resetColumns" class="btn secondary">Réinitialiser</button>
-    </div>`;
-  panel.querySelectorAll('input[data-column-index]').forEach(input => {
-    input.addEventListener('change', () => {
-      const index = Number(input.dataset.columnIndex);
-      let next = getHiddenColumns().filter(value => value !== index);
-      if(!input.checked) next.push(index);
-      setHiddenColumns(next);
-      applyHiddenColumns();
-    });
-  });
-  panel.querySelector('#showAllColumns').addEventListener('click', () => {
-    setHiddenColumns([]);
-    renderColumnsPanel();
-    applyHiddenColumns();
-  });
-  panel.querySelector('#resetColumns').addEventListener('click', () => {
-    localStorage.removeItem(HIDDEN_COLUMNS_KEY);
-    renderColumnsPanel();
-    applyHiddenColumns();
-  });
-}
-document.addEventListener('click', event => {
-  const button = document.getElementById('columnsBtn');
-  const panel = document.getElementById('columnsPanel');
-  if(!button || !panel) return;
-  if(button.contains(event.target)){
-    event.preventDefault();
-    event.stopPropagation();
-    renderColumnsPanel();
-    panel.classList.toggle('hidden');
-    return;
-  }
-  if(!panel.contains(event.target)) panel.classList.add('hidden');
+const columnDefs=[['1','Produit'],['2','Catégorie'],['3','Réf. fournisseur'],['4','Fournisseur'],['5','Nuisibles'],['6','Stock'],['7','Prix'],['8','Valeur'],['9','Statut'],['10','Modifier']];
+function applyHiddenColumns(){const hidden=JSON.parse(localStorage.getItem('hiddenCols')||'[]');document.querySelectorAll('#inventoryTable tr').forEach(r=>{[...r.children].forEach((c,i)=>{c.style.display=hidden.includes(i)?'none':''})})}
+document.addEventListener('click',e=>{
+const b=document.getElementById('columnsBtn');const p=document.getElementById('columnsPanel');
+if(!b||!p)return;
+if(e.target===b){p.classList.toggle('hidden');p.innerHTML='<strong>Colonnes</strong><br>'+columnDefs.map(([i,n])=>`<label><input data-col="${i}" type="checkbox" ${JSON.parse(localStorage.getItem("hiddenCols")||"[]").includes(Number(i))?'':'checked'}> ${n}</label><br>`).join('');
+p.querySelectorAll('input').forEach(ch=>ch.onchange=()=>{let h=JSON.parse(localStorage.getItem('hiddenCols')||'[]');const idx=Number(ch.dataset.col);if(ch.checked)h=h.filter(x=>x!=idx);else if(!h.includes(idx))h.push(idx);localStorage.setItem('hiddenCols',JSON.stringify(h));applyHiddenColumns();});return;}
+if(!p.contains(e.target))p.classList.add('hidden');
 });
 /* global supabase */
 const cfg = window.STOCK3D_CONFIG || {};
