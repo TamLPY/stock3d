@@ -161,17 +161,33 @@ el('closeModal').onclick=closeModal;el('modalBackdrop').onclick=e=>{if(e.target=
 el('categoryForm').onsubmit=async e=>{e.preventDefault();const name=el('newCategory').value.trim();if(!name)return;const {error}=await db.from('categories').insert({name});if(error)toast(error.message);else{el('newCategory').value='';toast('Catégorie ajoutée')}};
 el('technicianForm').onsubmit=async e=>{e.preventDefault();const name=el('newTechnician').value.trim();if(!name)return;const {error}=await db.from('technicians').insert({name});if(error)toast(error.message);else{el('newTechnician').value='';toast('Technicien ajouté')}};
 document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));el(`${b.dataset.view}View`).classList.add('active');el('pageTitle').textContent=b.querySelector('span').textContent;el('sidebar').classList.remove('open')});
+function updateMenuButton(){
+  const btn=el('menuBtn');
+  if(window.innerWidth>900){
+    const collapsed=document.body.classList.contains('sidebar-collapsed');
+    btn.textContent=collapsed?'›':'‹';
+    btn.title=collapsed?'Ouvrir le menu':'Rétracter le menu';
+    btn.setAttribute('aria-label',btn.title);
+  }else{
+    btn.textContent='☰';
+    btn.title='Ouvrir le menu';
+    btn.setAttribute('aria-label',btn.title);
+  }
+}
 el('menuBtn').onclick=()=>{
-if(window.innerWidth>768){
+if(window.innerWidth>900){
 document.body.classList.toggle('sidebar-collapsed');
 localStorage.setItem('sidebarCollapsed',document.body.classList.contains('sidebar-collapsed'));
+updateMenuButton();
 setTimeout(syncInventoryTopScrollbar,220);
 }else{
 el('sidebar').classList.toggle('open');
 }
 };
-if(localStorage.getItem('sidebarCollapsed')==='true'&&window.innerWidth>768){
+if(localStorage.getItem('sidebarCollapsed')==='true'&&window.innerWidth>900){
 document.body.classList.add('sidebar-collapsed');
 }
+updateMenuButton();
+window.addEventListener('resize',updateMenuButton);
 
 init();setTimeout(syncInventoryTopScrollbar,0);
