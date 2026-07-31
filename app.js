@@ -1,3 +1,13 @@
+
+const columnDefs=[['1','Produit'],['2','Catégorie'],['3','Réf. fournisseur'],['4','Fournisseur'],['5','Nuisibles'],['6','Stock'],['7','Prix'],['8','Valeur'],['9','Statut'],['10','Modifier']];
+function applyHiddenColumns(){const hidden=JSON.parse(localStorage.getItem('hiddenCols')||'[]');document.querySelectorAll('#inventoryTable tr').forEach(r=>{[...r.children].forEach((c,i)=>{c.style.display=hidden.includes(i)?'none':''})})}
+document.addEventListener('click',e=>{
+const b=document.getElementById('columnsBtn');const p=document.getElementById('columnsPanel');
+if(!b||!p)return;
+if(e.target===b){p.classList.toggle('hidden');p.innerHTML='<strong>Colonnes</strong><br>'+columnDefs.map(([i,n])=>`<label><input data-col="${i}" type="checkbox" ${JSON.parse(localStorage.getItem("hiddenCols")||"[]").includes(Number(i))?'':'checked'}> ${n}</label><br>`).join('');
+p.querySelectorAll('input').forEach(ch=>ch.onchange=()=>{let h=JSON.parse(localStorage.getItem('hiddenCols')||'[]');const idx=Number(ch.dataset.col);if(ch.checked)h=h.filter(x=>x!=idx);else if(!h.includes(idx))h.push(idx);localStorage.setItem('hiddenCols',JSON.stringify(h));applyHiddenColumns();});return;}
+if(!p.contains(e.target))p.classList.add('hidden');
+});
 /* global supabase */
 const cfg = window.STOCK3D_CONFIG || {};
 const configured = cfg.supabaseUrl && cfg.supabaseAnonKey && !cfg.supabaseUrl.includes('VOTRE-PROJET');
@@ -5,8 +15,8 @@ const el = (id) => document.getElementById(id);
 const state = { products: [], categories: [], technicians: [], movements: [], channel: null };
 let db;
 const euro = (n) => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(Number(n||0));
-const PACKAGE_TYPES = ['unité','carton','boîte','lot','bidon','flacon','bombe','tube','sachet','seau','rouleau','kilogramme','litre','mètre','autre'];
-const CONTENT_UNITS = ['unité','pièce','bombe','tube','sachet','flacon','litre','kilogramme','mètre','rouleau','dose','autre'];
+const PACKAGE_TYPES = ['unité','carton','boîte','lot','bidon','flacon','bombe','tube','sachet','seau','rouleau','kg','litre','mètre','autre'];
+const CONTENT_UNITS = ['unité','pièce','bombe','tube','sachet','flacon','litre','kg','mètre','rouleau','dose','autre'];
 const safe = (v) => v == null ? '' : v;
 function packageLabel(p){const type=p.stock_package_type||'unité';const mult=Number(p.stock_package_quantity||1);const unit=p.stock_content_unit||'unité';return mult>1?`${type} de ${mult} ${unit}${mult>1&&!unit.endsWith('s')?'s':''}`:type;}
 function priceLabel(p){const amount=Number(p.price_amount ?? p.unit_price ?? 0);const type=p.price_type||'unit';if(type==='package'){const pkg=p.price_package_type||p.stock_package_type||'lot';const qty=Number(p.price_package_quantity||p.stock_package_quantity||1);return `${euro(amount)} / ${pkg}${qty>1?` (${qty} ${p.stock_content_unit||'unités'})`:''}`;}return `${euro(amount)} / ${p.stock_content_unit||'unité'}`;}
@@ -60,7 +70,7 @@ function renderDashboard(){
   el('recentMovements').innerHTML=state.movements.slice(0,8).map(m=>movementCard(m)).join('')||'<div class="empty">Aucun mouvement</div>';
 }
 function filtered(){const q=el('searchInput').value.toLowerCase(),cat=el('categoryFilter').value,st=el('statusFilter').value;return state.products.filter(p=>(!q||[p.supplier_reference,p.internal_reference,p.name,p.description,p.supplier,p.target_pest].join(' ').toLowerCase().includes(q))&&(!cat||p.category_id===cat)&&(!st||status(p)[0]===st));}
-function renderInventory(){const list=filtered();el('inventoryCount').textContent=`${list.length} produit${list.length>1?'s':''}`;el('inventoryValue').textContent=euro(list.reduce((a,p)=>a+stockValue(p),0));el('inventoryBody').innerHTML=list.map(p=>{const [k,l]=status(p);return `<tr><td><div class="actions"><button class="stock-btn plus" onclick="openMovement('${p.id}','entry')">+</button><button class="stock-btn minus" onclick="openMovement('${p.id}','exit')">−</button></div></td><td><div class="product-name"><strong>${esc(p.name)}</strong><small>${esc(p.description)||'—'}</small></div></td><td>${esc(p.categories?.name)||'—'}</td><td>${esc(p.supplier_reference)||'—'}</td><td>${esc(p.supplier)||'—'}</td><td>${esc(p.target_pest)||'—'}</td><td><strong>${stockDisplay(p)}</strong><small class="cell-note">${Number(p.stock_package_quantity||1)>1?`${Number(p.stock||0)*Number(p.stock_package_quantity||1)} ${esc(p.stock_content_unit||'unités')} au total`:''}</small></td><td>${priceLabel(p)}<small class="cell-note">${(p.price_type||'unit')==='package'?`${euro(baseUnitPrice(p))} / ${esc(p.stock_content_unit||'unité')}`:''}</small></td><td><strong>${euro(stockValue(p))}</strong></td><td><span class="badge ${k}">${l}</span></td><td><div class="actions"><button class="edit-btn" onclick="openProduct('${p.id}')">Modifier</button></div></td></tr>`}).join('')||'<tr><td colspan="11" class="empty">Aucun produit</td></tr>';requestAnimationFrame(()=>{syncInventoryTopScrollbar();enableColumnResize();})}
+function renderInventory(){const list=filtered();el('inventoryCount').textContent=`${list.length} produit${list.length>1?'s':''}`;el('inventoryValue').textContent=euro(list.reduce((a,p)=>a+stockValue(p),0));el('inventoryBody').innerHTML=list.map(p=>{const [k,l]=status(p);return `<tr><td><div class="actions"><button class="stock-btn plus" onclick="openMovement('${p.id}','entry')">+</button><button class="stock-btn minus" onclick="openMovement('${p.id}','exit')">−</button></div></td><td><div class="product-name"><strong>${esc(p.name)}</strong><small>${esc(p.description)||'—'}</small></div></td><td>${esc(p.categories?.name)||'—'}</td><td>${esc(p.supplier_reference)||'—'}</td><td>${esc(p.supplier)||'—'}</td><td>${esc(p.target_pest)||'—'}</td><td><strong>${stockDisplay(p)}</strong><small class="cell-note">${Number(p.stock_package_quantity||1)>1?`${Number(p.stock||0)*Number(p.stock_package_quantity||1)} ${esc(p.stock_content_unit||'unités')} au total`:''}</small></td><td>${priceLabel(p)}<small class="cell-note">${(p.price_type||'unit')==='package'?`${euro(baseUnitPrice(p))} / ${esc(p.stock_content_unit||'unité')}`:''}</small></td><td><strong>${euro(stockValue(p))}</strong></td><td><span class="badge ${k}">${l}</span></td><td><div class="actions"><button class="edit-btn" onclick="openProduct('${p.id}')">Modifier</button></div></td></tr>`}).join('')||'<tr><td colspan="11" class="empty">Aucun produit</td></tr>';requestAnimationFrame(()=>{syncInventoryTopScrollbar();enableColumnResize();applyHiddenColumns();})}
 function movementCard(m){return `<div class="movement-row"><span class="badge ${m.movement_type}">${m.movement_type==='entry'?'Entrée':'Sortie'}</span><div class="row-main"><strong>${esc(m.products?.name||'Produit')}</strong><small>${m.quantity} · ${esc(m.technicians?.name||'—')} · ${dt(m.created_at)}</small></div></div>`}
 function renderMovements(){el('movementsBody').innerHTML=state.movements.map(m=>`<tr><td>${dt(m.created_at)}</td><td>${esc(m.products?.internal_reference)||'—'}</td><td>${esc(m.products?.name)||'—'}</td><td><span class="badge ${m.movement_type}">${m.movement_type==='entry'?'Entrée':'Sortie'}</span></td><td>${m.quantity}</td><td>${esc(m.technicians?.name)||'—'}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">Aucun mouvement</td></tr>'}
 function renderSettings(){el('categoryList').innerHTML=state.categories.map(x=>`<div class="manage-item"><span>${esc(x.name)}</span><button onclick="deleteCategory('${x.id}')">Supprimer</button></div>`).join('');el('technicianList').innerHTML=state.technicians.map(x=>`<div class="manage-item"><span>${esc(x.name)}</span><button onclick="deleteTechnician('${x.id}')">Supprimer</button></div>`).join('')}
@@ -126,7 +136,7 @@ window.openProduct=function(id=''){
     const qty=Math.max(Number(form.price_package_quantity.value||1),1);
     const amount=Number(form.price_amount.value||0);
     el('priceHelp').textContent=isPackage?`Prix calculé par ${form.stock_content_unit.value} : ${euro(amount/qty)}`:`Prix appliqué à chaque ${form.stock_content_unit.value}.`;
-    const simple=['unité','kilogramme','litre','mètre'].includes(form.stock_package_type.value);
+    const simple=['unité','kg','litre','mètre'].includes(form.stock_package_type.value);
     el('stockPackageQuantityLabel').classList.toggle('hidden',simple);
     if(simple)form.stock_package_quantity.value=1;
   };

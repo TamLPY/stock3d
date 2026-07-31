@@ -35,7 +35,7 @@
       <header class="topbar">
         <button id="menuBtn" class="icon-btn mobile-only">☰</button>
         <div><p class="eyebrow">GESTION DES PRODUITS ET CONSOMMABLES</p><h1 id="pageTitle">Tableau de bord</h1></div>
-        <button id="addProductTop" class="btn primary">＋ Ajouter un produit</button>
+        <div style="display:flex;gap:8px"><button id="columnsBtn" class="btn">📋 Colonnes</button><button id="addProductTop" class="btn primary">＋ Ajouter un produit</button></div>
       </header>
 
       <section id="dashboardView" class="view active">
@@ -73,7 +73,7 @@
           <article class="panel"><div class="panel-head"><div><h2>Techniciens</h2><p>Sélectionnés lors des sorties</p></div></div><form id="technicianForm" class="inline-form"><input id="newTechnician" required placeholder="Nom du technicien" /><button class="btn primary">Ajouter</button></form><div id="technicianList" class="manage-list"></div></article>
         </div>
       </section>
-    </main>
+    <div id="columnsPanel" class="hidden" style="position:fixed;top:70px;right:20px;background:#222;padding:12px;border:1px solid #444;border-radius:8px;z-index:9999;color:#fff"></div></main>
   </div>
 
   <div id="modalBackdrop" class="modal-backdrop hidden">
