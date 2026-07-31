@@ -70,34 +70,18 @@ function modal(title,eyebrow,html){el('modalTitle').textContent=title;el('modalE
 function closeModal(){el('modalBackdrop').classList.add('hidden')}
 
 function syncInventoryTopScrollbar(){
-  const nav=el('inventoryTableNavigation');
-  const range=el('inventoryHorizontalRange');
-  const left=el('inventoryScrollLeft');
-  const right=el('inventoryScrollRight');
-  const wrap=el('inventoryTableWrap');
-  if(!nav||!range||!left||!right||!wrap)return;
-
-  const maxScroll=Math.max(0,wrap.scrollWidth-wrap.clientWidth);
-  range.max=String(maxScroll);
-  range.value=String(Math.min(wrap.scrollLeft,maxScroll));
-  nav.classList.toggle('disabled',maxScroll===0);
-  range.disabled=maxScroll===0;
-  left.disabled=maxScroll===0||wrap.scrollLeft<=0;
-  right.disabled=maxScroll===0||wrap.scrollLeft>=maxScroll-1;
-
-  if(!nav.dataset.synced){
-    range.addEventListener('input',()=>{wrap.scrollLeft=Number(range.value)});
-    left.addEventListener('click',()=>wrap.scrollBy({left:-Math.max(260,wrap.clientWidth*.65),behavior:'smooth'}));
-    right.addEventListener('click',()=>wrap.scrollBy({left:Math.max(260,wrap.clientWidth*.65),behavior:'smooth'}));
-    wrap.addEventListener('scroll',()=>{
-      const currentMax=Math.max(0,wrap.scrollWidth-wrap.clientWidth);
-      range.max=String(currentMax);
-      range.value=String(Math.min(wrap.scrollLeft,currentMax));
-      left.disabled=wrap.scrollLeft<=0;
-      right.disabled=wrap.scrollLeft>=currentMax-1;
-    },{passive:true});
-    nav.dataset.synced='1';
+  const top=el('inventoryTopScrollbar'), inner=el('inventoryTopScrollbarInner'), wrap=el('inventoryTableWrap');
+  if(!top||!inner||!wrap)return;
+  const table=wrap.querySelector('table');
+  inner.style.width=`${table?table.scrollWidth:wrap.scrollWidth}px`;
+  top.classList.toggle('hidden',wrap.scrollWidth<=wrap.clientWidth+1);
+  if(!top.dataset.synced){
+    let lock=false;
+    top.addEventListener('scroll',()=>{if(lock)return;lock=true;wrap.scrollLeft=top.scrollLeft;lock=false});
+    wrap.addEventListener('scroll',()=>{if(lock)return;lock=true;top.scrollLeft=wrap.scrollLeft;lock=false});
+    top.dataset.synced='1';
   }
+  top.scrollLeft=wrap.scrollLeft;
 }
 window.addEventListener('resize',syncInventoryTopScrollbar);
 

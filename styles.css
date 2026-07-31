@@ -9,76 +9,26 @@
 .brand-mark{display:flex!important;align-items:center!important;justify-content:center!important;width:54px!important;height:54px!important;flex:0 0 54px!important;padding:4px!important;background:#fff!important;border:2px solid var(--red)!important;border-radius:14px!important;overflow:hidden!important}
 .brand-mark img{width:100%!important;height:100%!important;object-fit:contain!important;object-position:center center!important;display:block!important}
 
-/* Navigation horizontale du tableau, toujours visible */
-.table-navigation{
+/* Barre horizontale discrète et réellement fixe pendant le défilement */
+.inventory-table-panel{overflow:visible}
+.inventory-table-panel .inventory-summary{background:#fff;border-radius:var(--radius) var(--radius) 0 0}
+.top-scrollbar{
   position:sticky;
   top:0;
-  z-index:35;
-  display:grid;
-  grid-template-columns:44px minmax(120px,1fr) 44px;
-  align-items:center;
-  gap:10px;
+  z-index:30;
   width:100%;
-  min-height:56px;
-  padding:8px 12px;
-  background:#fff;
+  height:17px;
+  overflow-x:scroll;
+  overflow-y:hidden;
+  background:#f4f4f4;
   border-top:1px solid var(--line);
-  border-bottom:2px solid var(--red);
-  box-shadow:0 5px 12px rgba(0,0,0,.12);
+  border-bottom:1px solid var(--line);
+  scrollbar-color:#777 #dedede;
+  scrollbar-width:auto;
 }
-.table-navigation.disabled{opacity:.45}
-.table-nav-btn{
-  width:44px;
-  height:40px;
-  border:0;
-  border-radius:9px;
-  background:#111;
-  color:#fff;
-  font-size:18px;
-  font-weight:900;
-  cursor:pointer;
-}
-.table-nav-btn:hover:not(:disabled){background:var(--red)}
-.table-nav-btn:disabled{opacity:.3;cursor:not-allowed}
-#inventoryHorizontalRange{
-  width:100%;
-  height:32px;
-  margin:0;
-  cursor:ew-resize;
-  accent-color:var(--red);
-}
-#inventoryHorizontalRange:disabled{cursor:not-allowed}
-#inventoryHorizontalRange::-webkit-slider-runnable-track{
-  height:12px;
-  border-radius:999px;
-  background:#d8d8d8;
-  border:1px solid #bdbdbd;
-}
-#inventoryHorizontalRange::-webkit-slider-thumb{
-  -webkit-appearance:none;
-  width:34px;
-  height:28px;
-  margin-top:-9px;
-  border-radius:8px;
-  border:3px solid #fff;
-  background:var(--red);
-  box-shadow:0 1px 5px rgba(0,0,0,.35);
-}
-#inventoryHorizontalRange::-moz-range-track{
-  height:12px;
-  border-radius:999px;
-  background:#d8d8d8;
-  border:1px solid #bdbdbd;
-}
-#inventoryHorizontalRange::-moz-range-thumb{
-  width:30px;
-  height:24px;
-  border-radius:8px;
-  border:3px solid #fff;
-  background:var(--red);
-  box-shadow:0 1px 5px rgba(0,0,0,.35);
-}
-@media(max-width:900px){
-  .table-navigation{top:0;grid-template-columns:40px minmax(90px,1fr) 40px;padding:7px 8px;gap:7px}
-  .table-nav-btn{width:40px;height:38px}
-}
+.top-scrollbar-inner{height:1px}
+.top-scrollbar::-webkit-scrollbar{height:14px}
+.top-scrollbar::-webkit-scrollbar-track{background:#dedede}
+.top-scrollbar::-webkit-scrollbar-thumb{background:#777;border:3px solid #dedede;border-radius:999px}
+.top-scrollbar::-webkit-scrollbar-thumb:hover{background:#555}
+#inventoryTableWrap{overflow-x:auto;background:#fff;border-radius:0 0 var(--radius) var(--radius)}
