@@ -81,3 +81,4 @@ main{margin-left:240px;transition:margin-left .2s}
     font-size:19px!important;
   }
 }
+.col-resizer{position:absolute;top:0;right:-3px;width:6px;height:100%;cursor:col-resize}.col-resizer:hover{background:#d40000}

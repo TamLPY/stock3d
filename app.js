@@ -60,7 +60,7 @@ function renderDashboard(){
   el('recentMovements').innerHTML=state.movements.slice(0,8).map(m=>movementCard(m)).join('')||'<div class="empty">Aucun mouvement</div>';
 }
 function filtered(){const q=el('searchInput').value.toLowerCase(),cat=el('categoryFilter').value,st=el('statusFilter').value;return state.products.filter(p=>(!q||[p.supplier_reference,p.internal_reference,p.name,p.description,p.supplier,p.target_pest].join(' ').toLowerCase().includes(q))&&(!cat||p.category_id===cat)&&(!st||status(p)[0]===st));}
-function renderInventory(){const list=filtered();el('inventoryCount').textContent=`${list.length} produit${list.length>1?'s':''}`;el('inventoryValue').textContent=euro(list.reduce((a,p)=>a+stockValue(p),0));el('inventoryBody').innerHTML=list.map(p=>{const [k,l]=status(p);return `<tr><td><div class="actions"><button class="stock-btn plus" onclick="openMovement('${p.id}','entry')">+</button><button class="stock-btn minus" onclick="openMovement('${p.id}','exit')">−</button></div></td><td><div class="product-name"><strong>${esc(p.name)}</strong><small>${esc(p.description)||'—'}</small></div></td><td>${esc(p.categories?.name)||'—'}</td><td>${esc(p.supplier_reference)||'—'}</td><td>${esc(p.supplier)||'—'}</td><td>${esc(p.target_pest)||'—'}</td><td><strong>${stockDisplay(p)}</strong><small class="cell-note">${Number(p.stock_package_quantity||1)>1?`${Number(p.stock||0)*Number(p.stock_package_quantity||1)} ${esc(p.stock_content_unit||'unités')} au total`:''}</small></td><td>${priceLabel(p)}<small class="cell-note">${(p.price_type||'unit')==='package'?`${euro(baseUnitPrice(p))} / ${esc(p.stock_content_unit||'unité')}`:''}</small></td><td><strong>${euro(stockValue(p))}</strong></td><td><span class="badge ${k}">${l}</span></td><td><div class="actions"><button class="edit-btn" onclick="openProduct('${p.id}')">Modifier</button></div></td></tr>`}).join('')||'<tr><td colspan="11" class="empty">Aucun produit</td></tr>';requestAnimationFrame(syncInventoryTopScrollbar)}
+function renderInventory(){const list=filtered();el('inventoryCount').textContent=`${list.length} produit${list.length>1?'s':''}`;el('inventoryValue').textContent=euro(list.reduce((a,p)=>a+stockValue(p),0));el('inventoryBody').innerHTML=list.map(p=>{const [k,l]=status(p);return `<tr><td><div class="actions"><button class="stock-btn plus" onclick="openMovement('${p.id}','entry')">+</button><button class="stock-btn minus" onclick="openMovement('${p.id}','exit')">−</button></div></td><td><div class="product-name"><strong>${esc(p.name)}</strong><small>${esc(p.description)||'—'}</small></div></td><td>${esc(p.categories?.name)||'—'}</td><td>${esc(p.supplier_reference)||'—'}</td><td>${esc(p.supplier)||'—'}</td><td>${esc(p.target_pest)||'—'}</td><td><strong>${stockDisplay(p)}</strong><small class="cell-note">${Number(p.stock_package_quantity||1)>1?`${Number(p.stock||0)*Number(p.stock_package_quantity||1)} ${esc(p.stock_content_unit||'unités')} au total`:''}</small></td><td>${priceLabel(p)}<small class="cell-note">${(p.price_type||'unit')==='package'?`${euro(baseUnitPrice(p))} / ${esc(p.stock_content_unit||'unité')}`:''}</small></td><td><strong>${euro(stockValue(p))}</strong></td><td><span class="badge ${k}">${l}</span></td><td><div class="actions"><button class="edit-btn" onclick="openProduct('${p.id}')">Modifier</button></div></td></tr>`}).join('')||'<tr><td colspan="11" class="empty">Aucun produit</td></tr>';requestAnimationFrame(()=>{syncInventoryTopScrollbar();enableColumnResize();})}
 function movementCard(m){return `<div class="movement-row"><span class="badge ${m.movement_type}">${m.movement_type==='entry'?'Entrée':'Sortie'}</span><div class="row-main"><strong>${esc(m.products?.name||'Produit')}</strong><small>${m.quantity} · ${esc(m.technicians?.name||'—')} · ${dt(m.created_at)}</small></div></div>`}
 function renderMovements(){el('movementsBody').innerHTML=state.movements.map(m=>`<tr><td>${dt(m.created_at)}</td><td>${esc(m.products?.internal_reference)||'—'}</td><td>${esc(m.products?.name)||'—'}</td><td><span class="badge ${m.movement_type}">${m.movement_type==='entry'?'Entrée':'Sortie'}</span></td><td>${m.quantity}</td><td>${esc(m.technicians?.name)||'—'}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">Aucun mouvement</td></tr>'}
 function renderSettings(){el('categoryList').innerHTML=state.categories.map(x=>`<div class="manage-item"><span>${esc(x.name)}</span><button onclick="deleteCategory('${x.id}')">Supprimer</button></div>`).join('');el('technicianList').innerHTML=state.technicians.map(x=>`<div class="manage-item"><span>${esc(x.name)}</span><button onclick="deleteTechnician('${x.id}')">Supprimer</button></div>`).join('')}
@@ -191,3 +191,25 @@ updateMenuButton();
 window.addEventListener('resize',updateMenuButton);
 
 init();setTimeout(syncInventoryTopScrollbar,0);
+
+function enableColumnResize(){
+const table=document.querySelector('#inventoryTableWrap table');if(!table||table.dataset.resize)return;table.dataset.resize=1;
+const headers=table.querySelectorAll('th');
+headers.forEach((th,i)=>{
+ if(i===headers.length-1)return;
+ th.style.position='relative';
+ const h=document.createElement('div');
+ h.className='col-resizer';
+ h.onmousedown=(e)=>{
+  e.preventDefault();
+  const startX=e.pageX,startW=th.offsetWidth;
+  const rows=[...table.rows];
+  const move=(ev)=>{const w=Math.max(60,startW+ev.pageX-startX);rows.forEach(r=>{if(r.cells[i])r.cells[i].style.width=w+'px';});localStorage.setItem('col_'+i,w);};
+  const up=()=>{document.removeEventListener('mousemove',move);document.removeEventListener('mouseup',up);}
+  document.addEventListener('mousemove',move);document.addEventListener('mouseup',up);
+ };
+ th.appendChild(h);
+ const saved=localStorage.getItem('col_'+i);
+ if(saved){[...table.rows].forEach(r=>{if(r.cells[i])r.cells[i].style.width=saved+'px';});}
+});
+}
