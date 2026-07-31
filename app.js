@@ -2,25 +2,22 @@
 const cfg = window.STOCK3D_CONFIG || {};
 const configured = cfg.supabaseUrl && cfg.supabaseAnonKey && !cfg.supabaseUrl.includes('VOTRE-PROJET');
 const el = (id) => document.getElementById(id);
-const state = { products: [], categories: [], technicians: [], movements: [], session: null, channel: null };
+const state = { products: [], categories: [], technicians: [], movements: [], channel: null };
 let db;
 const euro = (n) => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(Number(n||0));
 const dt = (v) => new Intl.DateTimeFormat('fr-FR',{dateStyle:'short',timeStyle:'short'}).format(new Date(v));
 const esc = (s='') => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function status(p){const s=Number(p.stock); if(s<=0)return ['out','Épuisé']; if(s<=Number(p.alert_threshold))return ['low','Stock faible']; return ['ok','Disponible'];}
 function toast(message){el('toast').textContent=message;el('toast').classList.add('show');setTimeout(()=>el('toast').classList.remove('show'),2300)}
-function show(id){['loading','setupScreen','authScreen','app'].forEach(x=>el(x).classList.add('hidden'));el(id).classList.remove('hidden')}
+function show(id){['loading','setupScreen','app'].forEach(x=>el(x).classList.add('hidden'));el(id).classList.remove('hidden')}
 
 async function init(){
   if(!configured){show('setupScreen');return;}
-  db = supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{auth:{persistSession:true,autoRefreshToken:true}});
-  const {data:{session}}=await db.auth.getSession();
-  state.session=session;
-  db.auth.onAuthStateChange((_event,session)=>{state.session=session;session?startApp():stopApp();});
-  session?await startApp():show('authScreen');
+  db = supabase.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});
+  show('app');
+  await loadAll();
+  subscribeRealtime();
 }
-async function startApp(){show('app');await loadAll();subscribeRealtime();}
-function stopApp(){if(state.channel)db.removeChannel(state.channel);state.channel=null;show('authScreen')}
 async function loadAll(){
   setSync(false);
   const [p,c,t,m]=await Promise.all([
@@ -57,7 +54,7 @@ function renderDashboard(){
 function filtered(){const q=el('searchInput').value.toLowerCase(),cat=el('categoryFilter').value,st=el('statusFilter').value;return state.products.filter(p=>(!q||[p.supplier_reference,p.internal_reference,p.name,p.description,p.supplier,p.target_pest].join(' ').toLowerCase().includes(q))&&(!cat||p.category_id===cat)&&(!st||status(p)[0]===st));}
 function renderInventory(){const list=filtered();el('inventoryCount').textContent=`${list.length} produit${list.length>1?'s':''}`;el('inventoryValue').textContent=euro(list.reduce((a,p)=>a+Number(p.stock)*Number(p.unit_price),0));el('inventoryBody').innerHTML=list.map(p=>{const [k,l]=status(p);return `<tr><td>${esc(p.supplier_reference)||'—'}</td><td><strong>${esc(p.internal_reference)}</strong></td><td><div class="product-name"><strong>${esc(p.name)}</strong><small>${esc(p.description)||'—'}</small></div></td><td>${esc(p.categories?.name)||'—'}</td><td>${esc(p.supplier)||'—'}</td><td>${esc(p.target_pest)||'—'}</td><td><strong>${p.stock}</strong></td><td>${euro(p.unit_price)}</td><td><strong>${euro(Number(p.stock)*Number(p.unit_price))}</strong></td><td><span class="badge ${k}">${l}</span></td><td><div class="actions"><button class="stock-btn plus" onclick="openMovement('${p.id}','entry')">+</button><button class="stock-btn minus" onclick="openMovement('${p.id}','exit')">−</button><button class="edit-btn" onclick="openProduct('${p.id}')">Modifier</button></div></td></tr>`}).join('')||'<tr><td colspan="11" class="empty">Aucun produit</td></tr>'}
 function movementCard(m){return `<div class="movement-row"><span class="badge ${m.movement_type}">${m.movement_type==='entry'?'Entrée':'Sortie'}</span><div class="row-main"><strong>${esc(m.products?.name||'Produit')}</strong><small>${m.quantity} · ${esc(m.technicians?.name||'—')} · ${dt(m.created_at)}</small></div></div>`}
-function renderMovements(){el('movementsBody').innerHTML=state.movements.map(m=>`<tr><td>${dt(m.created_at)}</td><td>${esc(m.products?.internal_reference)||'—'}</td><td>${esc(m.products?.name)||'—'}</td><td><span class="badge ${m.movement_type}">${m.movement_type==='entry'?'Entrée':'Sortie'}</span></td><td>${m.quantity}</td><td>${esc(m.technicians?.name)||'—'}</td><td>${esc(state.session?.user?.email)||'Compte connecté'}</td></tr>`).join('')||'<tr><td colspan="7" class="empty">Aucun mouvement</td></tr>'}
+function renderMovements(){el('movementsBody').innerHTML=state.movements.map(m=>`<tr><td>${dt(m.created_at)}</td><td>${esc(m.products?.internal_reference)||'—'}</td><td>${esc(m.products?.name)||'—'}</td><td><span class="badge ${m.movement_type}">${m.movement_type==='entry'?'Entrée':'Sortie'}</span></td><td>${m.quantity}</td><td>${esc(m.technicians?.name)||'—'}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">Aucun mouvement</td></tr>'}
 function renderSettings(){el('categoryList').innerHTML=state.categories.map(x=>`<div class="manage-item"><span>${esc(x.name)}</span><button onclick="deleteCategory('${x.id}')">Supprimer</button></div>`).join('');el('technicianList').innerHTML=state.technicians.map(x=>`<div class="manage-item"><span>${esc(x.name)}</span><button onclick="deleteTechnician('${x.id}')">Supprimer</button></div>`).join('')}
 function populateFilters(){const v=el('categoryFilter').value;el('categoryFilter').innerHTML='<option value="">Toutes les catégories</option>'+state.categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');el('categoryFilter').value=v}
 
@@ -69,9 +66,7 @@ window.deleteProduct=async function(id){if(!confirm('Supprimer ce produit ?'))re
 window.deleteCategory=async function(id){if(!confirm('Supprimer cette catégorie ? Les produits resteront présents.'))return;const {error}=await db.from('categories').delete().eq('id',id);if(error)toast(error.message)}
 window.deleteTechnician=async function(id){if(!confirm('Retirer ce technicien de la liste ?'))return;const {error}=await db.from('technicians').update({active:false}).eq('id',id);if(error)toast(error.message)}
 
-el('authForm').onsubmit=async(e)=>{e.preventDefault();el('authMessage').textContent='';const {error}=await db.auth.signInWithPassword({email:el('authEmail').value,password:el('authPassword').value});if(error)el('authMessage').textContent=error.message};
-el('signupBtn').onclick=async()=>{const {error}=await db.auth.signUp({email:el('authEmail').value,password:el('authPassword').value});el('authMessage').textContent=error?error.message:'Compte créé. Vérifie tes e-mails si la confirmation est activée.'};
-el('logoutBtn').onclick=()=>db.auth.signOut();el('closeModal').onclick=closeModal;el('modalBackdrop').onclick=e=>{if(e.target===el('modalBackdrop'))closeModal()};el('addProductTop').onclick=()=>openProduct();
+el('closeModal').onclick=closeModal;el('modalBackdrop').onclick=e=>{if(e.target===el('modalBackdrop'))closeModal()};el('addProductTop').onclick=()=>openProduct();
 ['searchInput','categoryFilter','statusFilter'].forEach(id=>el(id).addEventListener(id==='searchInput'?'input':'change',renderInventory));
 el('categoryForm').onsubmit=async e=>{e.preventDefault();const name=el('newCategory').value.trim();if(!name)return;const {error}=await db.from('categories').insert({name});if(error)toast(error.message);else{el('newCategory').value='';toast('Catégorie ajoutée')}};
 el('technicianForm').onsubmit=async e=>{e.preventDefault();const name=el('newTechnician').value.trim();if(!name)return;const {error}=await db.from('technicians').insert({name});if(error)toast(error.message);else{el('newTechnician').value='';toast('Technicien ajouté')}};
