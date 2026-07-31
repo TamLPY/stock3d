@@ -81,4 +81,31 @@ main{margin-left:240px;transition:margin-left .2s}
     font-size:19px!important;
   }
 }
-.col-resizer{position:absolute;top:0;right:-3px;width:6px;height:100%;cursor:col-resize}.col-resizer:hover{background:#d40000}
+
+
+/* Colonnes redimensionnables — correctif fonctionnel */
+#inventoryTableWrap table{table-layout:fixed;width:max-content}
+#inventoryTableWrap th,#inventoryTableWrap td{overflow:hidden;text-overflow:ellipsis}
+#inventoryTableWrap th{position:relative}
+.col-resizer{
+  position:absolute;
+  top:0;
+  right:-5px;
+  width:12px;
+  height:100%;
+  z-index:30;
+  cursor:col-resize;
+  touch-action:none;
+  user-select:none;
+}
+.col-resizer::after{
+  content:"";
+  position:absolute;
+  top:0;
+  bottom:0;
+  left:5px;
+  width:2px;
+  background:transparent;
+}
+.col-resizer:hover::after,.col-resizer.active::after{background:var(--red)}
+body.is-resizing-column,body.is-resizing-column *{cursor:col-resize!important;user-select:none!important}
