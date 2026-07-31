@@ -204,7 +204,12 @@ headers.forEach((th,i)=>{
   e.preventDefault();
   const startX=e.pageX,startW=th.offsetWidth;
   const rows=[...table.rows];
-  const move=(ev)=>{const w=Math.max(60,startW+ev.pageX-startX);rows.forEach(r=>{if(r.cells[i])r.cells[i].style.width=w+'px';});localStorage.setItem('col_'+i,w);};
+  const colgroup=table.querySelector('colgroup');
+const move=(ev)=>{const w=Math.max(60,startW+ev.pageX-startX);
+if(colgroup&&colgroup.children[i]){colgroup.children[i].style.width=w+'px';}
+rows.forEach(r=>{if(r.cells[i]){r.cells[i].style.width=w+'px';r.cells[i].style.minWidth=w+'px';}});
+table.style.tableLayout='fixed';
+localStorage.setItem('col_'+i,w);};
   const up=()=>{document.removeEventListener('mousemove',move);document.removeEventListener('mouseup',up);}
   document.addEventListener('mousemove',move);document.addEventListener('mouseup',up);
  };
