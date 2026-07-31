@@ -1,9 +1,9 @@
 {
-  "name": "Stock 3D",
-  "short_name": "Stock 3D",
+  "name": "Joker 3D – Gestion des stocks",
+  "short_name": "Joker 3D",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#0d1726",
-  "theme_color": "#0d1726",
+  "background_color": "#0b0b0b",
+  "theme_color": "#0b0b0b",
   "icons": []
 }
