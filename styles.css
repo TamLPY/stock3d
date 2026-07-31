@@ -10,9 +10,11 @@
 .brand-mark img{width:100%!important;height:100%!important;object-fit:contain!important;object-position:center center!important;display:block!important}
 
 /* Barre horizontale fixe au-dessus du tableau */
-.top-scrollbar{position:sticky;top:0;z-index:15;width:100%;height:18px;overflow-x:auto;overflow-y:hidden;background:#fff;border-bottom:1px solid var(--line);scrollbar-color:var(--red) #e5e5e5;scrollbar-width:auto}
+.top-scrollbar{position:sticky;top:8px;z-index:15;width:100%;height:30px;overflow-x:auto;overflow-y:hidden;background:#fff;border-bottom:1px solid var(--line);scrollbar-color:var(--red) #e5e5e5;scrollbar-width:auto}
 .top-scrollbar-inner{height:1px}
 .top-scrollbar::-webkit-scrollbar{height:14px}
 .top-scrollbar::-webkit-scrollbar-track{background:#e5e5e5;border-radius:999px}
 .top-scrollbar::-webkit-scrollbar-thumb{background:var(--red);border-radius:999px;border:2px solid #e5e5e5}
 #inventoryTableWrap{overflow-x:auto}
+
+.table-wrap{padding-top:4px;}
