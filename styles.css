@@ -9,27 +9,23 @@
 .brand-mark{display:flex!important;align-items:center!important;justify-content:center!important;width:54px!important;height:54px!important;flex:0 0 54px!important;padding:4px!important;background:#fff!important;border:2px solid var(--red)!important;border-radius:14px!important;overflow:hidden!important}
 .brand-mark img{width:100%!important;height:100%!important;object-fit:contain!important;object-position:center center!important;display:block!important}
 
-/* Barre horizontale fixe de l'inventaire */
-.inventory-table-panel{overflow:visible!important}
-.top-scrollbar{
-  position:sticky;
-  top:0;
-  z-index:40;
-  display:block!important;
-  width:100%;
-  height:18px;
-  overflow-x:scroll;
-  overflow-y:hidden;
-  background:#ededed;
-  border-top:1px solid #d6d6d6;
-  border-bottom:1px solid #d6d6d6;
-  scrollbar-gutter:stable;
-  scrollbar-color:#777 #dedede;
-  scrollbar-width:auto;
+/* Barre horizontale fixe au-dessus du tableau */
+.top-scrollbar{position:sticky;top:0;z-index:15;width:100%;height:18px;overflow-x:auto;overflow-y:hidden;background:#fff;border-bottom:1px solid var(--line);scrollbar-color:var(--red) #e5e5e5;scrollbar-width:auto}
+.top-scrollbar-inner{height:1px}
+.top-scrollbar::-webkit-scrollbar{height:14px}
+.top-scrollbar::-webkit-scrollbar-track{background:#e5e5e5;border-radius:999px}
+.top-scrollbar::-webkit-scrollbar-thumb{background:var(--red);border-radius:999px;border:2px solid #e5e5e5}
+#inventoryTableWrap{overflow-x:auto}
+
+@media (min-width:769px){
+#menuBtn{display:inline-flex!important}
+body.sidebar-collapsed .sidebar{width:64px}
+body.sidebar-collapsed .sidebar .nav-btn span,
+body.sidebar-collapsed .sidebar-brand h2,
+body.sidebar-collapsed .sidebar-brand p,
+body.sidebar-collapsed .sidebar-bottom{display:none}
+body.sidebar-collapsed .app{grid-template-columns:64px 1fr}
+body.sidebar-collapsed main{margin-left:64px}
+.sidebar{transition:width .2s}
+main{margin-left:240px;transition:margin-left .2s}
 }
-.top-scrollbar-inner{height:1px;min-width:100%}
-.top-scrollbar::-webkit-scrollbar{height:16px}
-.top-scrollbar::-webkit-scrollbar-track{background:#dedede}
-.top-scrollbar::-webkit-scrollbar-thumb{background:#777;border:3px solid #dedede;border-radius:999px}
-.top-scrollbar::-webkit-scrollbar-thumb:hover{background:#555}
-#inventoryTableWrap{overflow-x:auto;background:#fff;border-radius:0 0 var(--radius) var(--radius)}

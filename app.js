@@ -72,34 +72,18 @@ function closeModal(){el('modalBackdrop').classList.add('hidden')}
 function syncInventoryTopScrollbar(){
   const top=el('inventoryTopScrollbar'), inner=el('inventoryTopScrollbarInner'), wrap=el('inventoryTableWrap');
   if(!top||!inner||!wrap)return;
-
-  // Ne rien calculer tant que la vue Inventaire est masquée.
-  if(wrap.clientWidth===0)return;
-
   const table=wrap.querySelector('table');
-  const contentWidth=table ? table.scrollWidth : wrap.scrollWidth;
-  inner.style.width=`${Math.max(contentWidth,wrap.clientWidth+1)}px`;
-  top.classList.remove('hidden');
-
+  inner.style.width=`${table?table.scrollWidth:wrap.scrollWidth}px`;
+  top.classList.toggle('hidden',wrap.scrollWidth<=wrap.clientWidth+1);
   if(!top.dataset.synced){
     let lock=false;
-    top.addEventListener('scroll',()=>{
-      if(lock)return;
-      lock=true;
-      wrap.scrollLeft=top.scrollLeft;
-      lock=false;
-    });
-    wrap.addEventListener('scroll',()=>{
-      if(lock)return;
-      lock=true;
-      top.scrollLeft=wrap.scrollLeft;
-      lock=false;
-    });
+    top.addEventListener('scroll',()=>{if(lock)return;lock=true;wrap.scrollLeft=top.scrollLeft;lock=false});
+    wrap.addEventListener('scroll',()=>{if(lock)return;lock=true;top.scrollLeft=wrap.scrollLeft;lock=false});
     top.dataset.synced='1';
   }
   top.scrollLeft=wrap.scrollLeft;
 }
-window.addEventListener('resize',()=>requestAnimationFrame(syncInventoryTopScrollbar));
+window.addEventListener('resize',syncInventoryTopScrollbar);
 
 window.openProduct=function(id=''){
   const p=state.products.find(x=>x.id===id)||{};
@@ -176,6 +160,18 @@ el('closeModal').onclick=closeModal;el('modalBackdrop').onclick=e=>{if(e.target=
 ['searchInput','categoryFilter','statusFilter'].forEach(id=>el(id).addEventListener(id==='searchInput'?'input':'change',renderInventory));
 el('categoryForm').onsubmit=async e=>{e.preventDefault();const name=el('newCategory').value.trim();if(!name)return;const {error}=await db.from('categories').insert({name});if(error)toast(error.message);else{el('newCategory').value='';toast('Catégorie ajoutée')}};
 el('technicianForm').onsubmit=async e=>{e.preventDefault();const name=el('newTechnician').value.trim();if(!name)return;const {error}=await db.from('technicians').insert({name});if(error)toast(error.message);else{el('newTechnician').value='';toast('Technicien ajouté')}};
-document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));el(`${b.dataset.view}View`).classList.add('active');el('pageTitle').textContent=b.querySelector('span').textContent;el('sidebar').classList.remove('open');if(b.dataset.view==='inventory')requestAnimationFrame(()=>requestAnimationFrame(syncInventoryTopScrollbar))});
-el('menuBtn').onclick=()=>el('sidebar').classList.toggle('open');
+document.querySelectorAll('.nav-btn').forEach(b=>b.onclick=()=>{document.querySelectorAll('.nav-btn').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));el(`${b.dataset.view}View`).classList.add('active');el('pageTitle').textContent=b.querySelector('span').textContent;el('sidebar').classList.remove('open')});
+el('menuBtn').onclick=()=>{
+if(window.innerWidth>768){
+document.body.classList.toggle('sidebar-collapsed');
+localStorage.setItem('sidebarCollapsed',document.body.classList.contains('sidebar-collapsed'));
+setTimeout(syncInventoryTopScrollbar,220);
+}else{
+el('sidebar').classList.toggle('open');
+}
+};
+if(localStorage.getItem('sidebarCollapsed')==='true'&&window.innerWidth>768){
+document.body.classList.add('sidebar-collapsed');
+}
+
 init();setTimeout(syncInventoryTopScrollbar,0);
