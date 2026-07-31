@@ -1,5 +1,7 @@
 
-const columnDefs=[['1','Produit'],['2','Catégorie'],['3','Réf. fournisseur'],['4','Fournisseur'],['5','Nuisibles'],['6','Stock'],['7','Prix'],['8','Valeur'],['9','Statut'],['10','Modifier']];
+document.addEventListener('DOMContentLoaded',()=>setTimeout(applyHiddenColumns,800));
+
+const columnDefs=[['1','Produit'],['2','Catégorie'],['3','Réf. fournisseur'],['4','Fournisseur'],['5','Nuisibles'],['6','Stock'],['7','Prix'],['8','Valeur'],['9','Statut'],['10','Actions']];
 function applyHiddenColumns(){const hidden=JSON.parse(localStorage.getItem('hiddenCols')||'[]');document.querySelectorAll('#inventoryTable tr').forEach(r=>{[...r.children].forEach((c,i)=>{c.style.display=hidden.includes(i)?'none':''})})}
 document.addEventListener('click',e=>{
 const b=document.getElementById('columnsBtn');const p=document.getElementById('columnsPanel');
