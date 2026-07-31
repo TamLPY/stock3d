@@ -21,11 +21,9 @@
 #menuBtn{display:inline-flex!important}
 body.sidebar-collapsed .sidebar{width:64px}
 body.sidebar-collapsed .sidebar .nav-btn span,
-body.sidebar-collapsed .sidebar-brand h2,
-body.sidebar-collapsed .sidebar-brand p,
+body.sidebar-collapsed .sidebar-brand strong,
+body.sidebar-collapsed .sidebar-brand small,
 body.sidebar-collapsed .sidebar-bottom{display:none}
-body.sidebar-collapsed .app{grid-template-columns:64px 1fr}
 body.sidebar-collapsed main{margin-left:64px}
 .sidebar{transition:width .2s}
-main{margin-left:240px;transition:margin-left .2s}
-}
+main{margin-left:240px;transition:margin-left .2s;padding-left:28px}
