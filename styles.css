@@ -4,25 +4,15 @@
 /* Identité Joker 3D */
 .topbar{border-bottom:1px solid #dedede;margin-bottom:18px}.sidebar-brand strong{color:#fff}.sidebar-brand small{color:#d0d0d0}.stat-card{border-top:3px solid #111}.stat-card.warning{border-top-color:var(--amber)}.stat-card.danger{border-top-color:var(--red)}a{color:var(--red)}
 
-/* Correction logo Joker 3D */
-.brand-mark{
-    display:flex !important;
-    align-items:center !important;
-    justify-content:center !important;
-    width:54px !important;
-    height:54px !important;
-    flex:0 0 54px !important;
-    padding:4px !important;
-    background:#fff !important;
-    border:2px solid var(--red) !important;
-    border-radius:14px !important;
-    overflow:hidden !important;
-}
 
-.brand-mark img{
-    width:100% !important;
-    height:100% !important;
-    object-fit:contain !important;
-    object-position:center center !important;
-    display:block !important;
-}
+/* Logo Joker 3D centré */
+.brand-mark{display:flex!important;align-items:center!important;justify-content:center!important;width:54px!important;height:54px!important;flex:0 0 54px!important;padding:4px!important;background:#fff!important;border:2px solid var(--red)!important;border-radius:14px!important;overflow:hidden!important}
+.brand-mark img{width:100%!important;height:100%!important;object-fit:contain!important;object-position:center center!important;display:block!important}
+
+/* Barre horizontale fixe au-dessus du tableau */
+.top-scrollbar{position:sticky;top:0;z-index:15;width:100%;height:18px;overflow-x:auto;overflow-y:hidden;background:#fff;border-bottom:1px solid var(--line);scrollbar-color:var(--red) #e5e5e5;scrollbar-width:auto}
+.top-scrollbar-inner{height:1px}
+.top-scrollbar::-webkit-scrollbar{height:14px}
+.top-scrollbar::-webkit-scrollbar-track{background:#e5e5e5;border-radius:999px}
+.top-scrollbar::-webkit-scrollbar-thumb{background:var(--red);border-radius:999px;border:2px solid #e5e5e5}
+#inventoryTableWrap{overflow-x:auto}
