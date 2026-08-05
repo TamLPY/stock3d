@@ -247,3 +247,15 @@ main{margin-left:240px;transition:margin-left .2s}
   display:block;
   color:currentColor;
 }
+
+/* Alignement précis du logo lorsque le menu est replié */
+@media (min-width:901px){
+  body.sidebar-collapsed .sidebar-brand{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+  }
+  body.sidebar-collapsed .sidebar-brand .brand-mark{
+    transform:translateX(2px)!important;
+  }
+}
