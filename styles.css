@@ -168,3 +168,26 @@ main{margin-left:240px;transition:margin-left .2s}
   .supplier-order-banner{align-items:flex-start;flex-direction:column;gap:8px}
   .supplier-order-count{white-space:normal}
 }
+
+
+/* Consommation par technicien */
+.consumption-head{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:18px}
+.consumption-head h2{margin:4px 0 6px}.consumption-head p{margin:0;color:var(--muted)}
+.consumption-filters{display:grid;gap:10px;min-width:240px}
+.consumption-filters select,.consumption-custom input{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fff;color:var(--ink)}
+.consumption-custom{display:flex;gap:8px}.consumption-custom label{display:grid;gap:4px;font-size:11px;font-weight:800;color:var(--muted)}
+.consumption-stats{margin-bottom:18px}.consumption-stats .stat-card small{color:var(--muted);font-size:12px;font-weight:700}
+.consumption-stats .stat-card:nth-child(3),.consumption-stats .stat-card:nth-child(4){border-top-color:var(--red)}
+.consumption-stats .stat-card:nth-child(3) strong,.consumption-stats .stat-card:nth-child(4) strong{font-size:21px}
+.consumption-list{display:grid;gap:16px}
+.technician-consumption{padding:0;overflow:hidden}
+.technician-consumption-head{display:flex;align-items:center;justify-content:space-between;gap:16px;background:#0b0b0b;border-left:6px solid var(--red);padding:14px 18px;color:#fff}
+.technician-consumption-head>div{display:flex;align-items:center;gap:10px}.technician-consumption-head strong{font-size:17px}
+.tech-rank{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--red);font-size:12px;font-weight:900}
+.tech-movement-count{background:var(--red);border-radius:999px;padding:6px 10px;font-size:12px;font-weight:900;white-space:nowrap}
+.technician-products{padding:0 18px}
+.technician-product-row{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:13px 0;border-bottom:1px solid var(--line)}
+.technician-product-row:last-child{border-bottom:0}.technician-product-row>div{display:grid;gap:3px}.technician-product-row small{color:var(--muted)}
+.technician-product-row>span{font-weight:900;color:var(--red);text-align:right}
+@media(max-width:900px){.consumption-head{flex-direction:column}.consumption-filters{width:100%;min-width:0}.consumption-custom{flex-wrap:wrap}}
+@media(max-width:520px){.technician-consumption-head{align-items:flex-start;flex-direction:column}.tech-movement-count{white-space:normal}.technician-product-row{align-items:flex-start}}

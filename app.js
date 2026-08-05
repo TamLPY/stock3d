@@ -87,7 +87,7 @@ document.addEventListener('click', event => {
 const cfg = window.STOCK3D_CONFIG || {};
 const configured = cfg.supabaseUrl && cfg.supabaseAnonKey && !cfg.supabaseUrl.includes('VOTRE-PROJET');
 const el = (id) => document.getElementById(id);
-const state = { products: [], categories: [], technicians: [], movements: [], channel: null };
+const state = { products: [], categories: [], technicians: [], movements: [], consumptionMovements: [], channel: null };
 let db;
 const euro = (n) => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(Number(n||0));
 const PACKAGE_TYPES = ['unité','carton','boîte','lot','bidon','flacon','bombe','tube','sachet','seau','rouleau','kg','litre','mètre','autre'];
@@ -120,7 +120,7 @@ async function loadAll(){
     db.from('stock_movements').select('*,products(name),technicians(name)').order('created_at',{ascending:false}).limit(500)
   ]);
   const err=p.error||c.error||t.error||m.error;if(err){toast(err.message);setSync(true);return;}
-  state.products=p.data;state.categories=c.data;state.technicians=t.data;state.movements=m.data;renderAll();setSync(true);
+  state.products=p.data;state.categories=c.data;state.technicians=t.data;state.movements=m.data;await reloadConsumptionMovements(false);renderAll();setSync(true);
 }
 function subscribeRealtime(){
   if(state.channel)db.removeChannel(state.channel);
@@ -133,11 +133,33 @@ function subscribeRealtime(){
 }
 function setSync(ok){el('syncState').textContent=ok?'● Synchronisé':'◌ Synchronisation…'}
 async function reloadProducts(){const {data}=await db.from('products').select('*,categories(name)').order('name');if(data){state.products=data;renderAll();}}
-async function reloadMovements(){const {data}=await db.from('stock_movements').select('*,products(name),technicians(name)').order('created_at',{ascending:false}).limit(500);if(data){state.movements=data;renderMovements();renderDashboard();}}
+async function reloadMovements(){const {data}=await db.from('stock_movements').select('*,products(name),technicians(name)').order('created_at',{ascending:false}).limit(500);if(data){state.movements=data;renderMovements();renderDashboard();}await reloadConsumptionMovements();}
+
+async function reloadConsumptionMovements(render=true){
+  if(!db)return;
+  const pageSize=1000;
+  let from=0;
+  let all=[];
+  while(true){
+    const {data,error}=await db.from('stock_movements')
+      .select('*,products(name),technicians(name)')
+      .eq('movement_type','exit')
+      .order('created_at',{ascending:false})
+      .range(from,from+pageSize-1);
+    if(error){console.error('Consommation:',error);break;}
+    all=all.concat(data||[]);
+    if(!data||data.length<pageSize)break;
+    from+=pageSize;
+    if(from>=20000)break;
+  }
+  state.consumptionMovements=all;
+  if(render)renderConsumption();
+}
+
 async function reloadCategories(){const {data}=await db.from('categories').select('*').order('name');if(data){state.categories=data;renderAll();}}
 async function reloadTechnicians(){const {data}=await db.from('technicians').select('*').eq('active',true).order('name');if(data){state.technicians=data;renderSettings();}}
 
-function renderAll(){renderDashboard();renderInventory();renderMovements();renderOrders();renderSettings();populateFilters()}
+function renderAll(){renderDashboard();renderInventory();renderMovements();renderOrders();renderConsumption();renderSettings();populateFilters()}
 function renderDashboard(){
   const low=state.products.filter(p=>status(p)[0]==='low'),out=state.products.filter(p=>status(p)[0]==='out');
   el('statProducts').textContent=state.products.length;el('statValue').textContent=euro(state.products.reduce((a,p)=>a+stockValue(p),0));el('statLow').textContent=low.length;el('statOut').textContent=out.length;
@@ -190,6 +212,86 @@ function renderOrders(){
 }
 
 function renderMovements(){el('movementsBody').innerHTML=state.movements.map(m=>`<tr><td>${dt(m.created_at)}</td><td>${esc(m.products?.name)||'—'}</td><td><span class="badge ${m.movement_type}">${m.movement_type==='entry'?'Entrée':'Sortie'}</span></td><td>${m.quantity}</td><td>${esc(m.technicians?.name)||'—'}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Aucun mouvement</td></tr>'}
+
+function consumptionRange(){
+  const period=el('consumptionPeriod')?.value||'30';
+  const now=new Date();
+  let start=null,end=new Date(now);
+  if(period==='all')return {start:null,end:null};
+  if(period==='year')start=new Date(now.getFullYear(),0,1);
+  else if(period==='custom'){
+    const s=el('consumptionStart')?.value;
+    const e=el('consumptionEnd')?.value;
+    start=s?new Date(s+'T00:00:00'):null;
+    end=e?new Date(e+'T23:59:59'):null;
+    return {start,end};
+  }else{
+    start=new Date(now);
+    start.setDate(start.getDate()-Number(period));
+  }
+  return {start,end};
+}
+function consumptionFiltered(){
+  const {start,end}=consumptionRange();
+  return state.consumptionMovements.filter(m=>{
+    const d=new Date(m.created_at);
+    return (!start||d>=start)&&(!end||d<=end);
+  });
+}
+function consumptionUnit(m){
+  const p=state.products.find(x=>x.id===m.product_id);
+  return p?packageLabel(p):'unité';
+}
+function renderConsumption(){
+  if(!el('consumptionTechnicians'))return;
+  const list=consumptionFiltered();
+  const techGroups=new Map();
+  const productMoves=new Map();
+
+  list.forEach(m=>{
+    const tech=m.technicians?.name||'Non attribué';
+    const techKey=m.technician_id||'none';
+    if(!techGroups.has(techKey))techGroups.set(techKey,{name:tech,movements:0,products:new Map()});
+    const group=techGroups.get(techKey);
+    group.movements++;
+    const prodKey=m.product_id||m.products?.name||'unknown';
+    const prodName=m.products?.name||'Produit';
+    if(!group.products.has(prodKey))group.products.set(prodKey,{name:prodName,qty:0,movements:0,unit:consumptionUnit(m)});
+    const pg=group.products.get(prodKey);
+    pg.qty+=Number(m.quantity||0);pg.movements++;
+
+    if(!productMoves.has(prodKey))productMoves.set(prodKey,{name:prodName,movements:0});
+    productMoves.get(prodKey).movements++;
+  });
+
+  const groups=[...techGroups.values()].sort((a,b)=>b.movements-a.movements||a.name.localeCompare(b.name,'fr'));
+  const products=[...productMoves.values()].sort((a,b)=>b.movements-a.movements||a.name.localeCompare(b.name,'fr'));
+  const top=groups[0],topProduct=products[0];
+
+  el('consumptionMovementCount').textContent=list.length;
+  el('consumptionTechCount').textContent=groups.filter(g=>g.name!=='Non attribué').length;
+  el('consumptionTopTech').textContent=top?.name||'—';
+  el('consumptionTopTechNote').textContent=top?`${top.movements} sortie${top.movements>1?'s':''}`:'';
+  el('consumptionTopProduct').textContent=topProduct?.name||'—';
+  el('consumptionTopProductNote').textContent=topProduct?`${topProduct.movements} mouvement${topProduct.movements>1?'s':''} de sortie`:'';
+
+  el('consumptionTechnicians').innerHTML=groups.map((g,index)=>{
+    const products=[...g.products.values()].sort((a,b)=>b.movements-a.movements||a.name.localeCompare(b.name,'fr'));
+    return `<article class="panel technician-consumption">
+      <div class="technician-consumption-head">
+        <div><span class="tech-rank">${index+1}</span><strong>${esc(g.name)}</strong></div>
+        <span class="tech-movement-count">${g.movements} sortie${g.movements>1?'s':''}</span>
+      </div>
+      <div class="technician-products">
+        ${products.map(p=>`<div class="technician-product-row">
+          <div><strong>${esc(p.name)}</strong><small>${p.movements} mouvement${p.movements>1?'s':''}</small></div>
+          <span>${new Intl.NumberFormat('fr-FR',{maximumFractionDigits:2}).format(p.qty)} ${esc(p.unit)}</span>
+        </div>`).join('')}
+      </div>
+    </article>`;
+  }).join('')||'<div class="panel empty">Aucune sortie de stock sur cette période.</div>';
+}
+
 function renderSettings(){el('categoryList').innerHTML=state.categories.map(x=>`<div class="manage-item"><span>${esc(x.name)}</span><button onclick="deleteCategory('${x.id}')">Supprimer</button></div>`).join('');el('technicianList').innerHTML=state.technicians.map(x=>`<div class="manage-item"><span>${esc(x.name)}</span><button onclick="deleteTechnician('${x.id}')">Supprimer</button></div>`).join('')}
 function populateFilters(){const v=el('categoryFilter').value;el('categoryFilter').innerHTML='<option value="">Toutes les catégories</option>'+state.categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');el('categoryFilter').value=v}
 
@@ -317,6 +419,17 @@ document.body.classList.add('sidebar-collapsed');
 }
 updateMenuButton();
 window.addEventListener('resize',updateMenuButton);
+
+
+if(el('consumptionPeriod')){
+  el('consumptionPeriod').addEventListener('change',()=>{
+    const custom=el('consumptionPeriod').value==='custom';
+    el('consumptionCustomDates').classList.toggle('hidden',!custom);
+    renderConsumption();
+  });
+}
+if(el('consumptionStart'))el('consumptionStart').addEventListener('change',renderConsumption);
+if(el('consumptionEnd'))el('consumptionEnd').addEventListener('change',renderConsumption);
 
 init();setTimeout(syncInventoryTopScrollbar,0);
 

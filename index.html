@@ -27,6 +27,7 @@
         <button class="nav-btn" data-view="inventory">▤ <span>Inventaire</span></button>
         <button class="nav-btn" data-view="movements">⇄ <span>Mouvements</span></button>
         <button class="nav-btn" data-view="orders">🛒 <span>À commander</span></button>
+        <button class="nav-btn" data-view="consumption">📊 <span>Consommation</span></button>
         <button class="nav-btn" data-view="settings">⚙ <span>Paramètres</span></button>
       </nav>
       <div class="sidebar-bottom"><span id="syncState">◌ Synchronisation…</span></div>
@@ -77,6 +78,40 @@
         <div class="panel table-panel">
           <div class="table-wrap"><table id="ordersTable"><thead><tr><th>Produit</th><th>Fournisseur</th><th>Réf. fournisseur</th><th>Stock actuel</th><th>Stock minimum</th><th>Statut</th><th>Action</th></tr></thead><tbody id="ordersBody"></tbody></table></div>
         </div>
+      </section>
+
+
+      <section id="consumptionView" class="view">
+        <div class="panel consumption-head">
+          <div>
+            <p class="eyebrow">SUIVI DES SORTIES</p>
+            <h2>Consommation par technicien</h2>
+            <p>Analyse automatiquement les sorties de stock attribuées aux techniciens.</p>
+          </div>
+          <div class="consumption-filters">
+            <select id="consumptionPeriod">
+              <option value="7">7 derniers jours</option>
+              <option value="30" selected>30 derniers jours</option>
+              <option value="90">3 derniers mois</option>
+              <option value="year">Cette année</option>
+              <option value="all">Tout l'historique</option>
+              <option value="custom">Période personnalisée</option>
+            </select>
+            <div id="consumptionCustomDates" class="consumption-custom hidden">
+              <label>Du <input id="consumptionStart" type="date"></label>
+              <label>Au <input id="consumptionEnd" type="date"></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-grid consumption-stats">
+          <article class="stat-card"><span>Sorties enregistrées</span><strong id="consumptionMovementCount">0</strong></article>
+          <article class="stat-card"><span>Techniciens concernés</span><strong id="consumptionTechCount">0</strong></article>
+          <article class="stat-card"><span>Plus de sorties</span><strong id="consumptionTopTech">—</strong><small id="consumptionTopTechNote"></small></article>
+          <article class="stat-card"><span>Produit le plus sorti</span><strong id="consumptionTopProduct">—</strong><small id="consumptionTopProductNote"></small></article>
+        </div>
+
+        <div id="consumptionTechnicians" class="consumption-list"></div>
       </section>
 
       <section id="settingsView" class="view">
