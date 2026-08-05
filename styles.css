@@ -117,13 +117,54 @@ main{margin-left:240px;transition:margin-left .2s}
 #ordersTable{min-width:1050px}
 @media(max-width:900px){.order-summary{align-items:flex-start}.order-summary-count{min-width:auto}.order-summary-count strong{font-size:28px}}
 
-/* Regroupement automatique des commandes par fournisseur */
+
+/* Regroupement visuel des commandes par fournisseur — Joker 3D */
+.supplier-order-spacer td{
+  height:22px;
+  padding:0 !important;
+  border:0 !important;
+  background:transparent !important;
+}
 .supplier-order-header td{
-  background:#f3f3f3;
-  color:var(--red);
-  font-size:13px;
+  padding:0 !important;
+  border:0 !important;
+  background:transparent !important;
+}
+.supplier-order-banner{
+  min-height:52px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:12px 18px;
+  background:#0b0b0b;
+  border-left:6px solid var(--red);
+  border-radius:10px 10px 0 0;
+  box-shadow:0 5px 16px rgba(0,0,0,.12);
+}
+.supplier-order-name{
+  color:#fff;
+  font-size:16px;
+  font-weight:900;
   text-transform:uppercase;
-  letter-spacing:.04em;
-  padding:10px 12px;
-  border-top:2px solid var(--line);
+  letter-spacing:.06em;
+}
+.supplier-order-count{
+  color:#fff;
+  background:var(--red);
+  border-radius:999px;
+  padding:6px 10px;
+  font-size:12px;
+  font-weight:900;
+  white-space:nowrap;
+}
+.supplier-product-row td{
+  background:#fff;
+}
+.supplier-product-row:last-child td{
+  border-bottom:1px solid var(--line);
+}
+@media(max-width:700px){
+  .supplier-order-banner{align-items:flex-start;flex-direction:column;gap:8px}
+  .supplier-order-count{white-space:normal}
 }

@@ -156,8 +156,8 @@ function renderOrders(){
   const body=el('ordersBody');
   if(!body)return;
   const list=productsToOrder().sort((a,b)=>{
-    const supplierA=(a.supplier||'Sans fournisseur').trim();
-    const supplierB=(b.supplier||'Sans fournisseur').trim();
+    const supplierA=(a.supplier||'Sans fournisseur').trim()||'Sans fournisseur';
+    const supplierB=(b.supplier||'Sans fournisseur').trim()||'Sans fournisseur';
     const bySupplier=supplierA.localeCompare(supplierB,'fr',{sensitivity:'base'});
     if(bySupplier!==0)return bySupplier;
     return (a.name||'').localeCompare(b.name||'','fr',{sensitivity:'base'});
@@ -165,15 +165,27 @@ function renderOrders(){
   const count=el('orderCount');
   if(count)count.textContent=list.length;
 
+  const supplierCounts=list.reduce((acc,p)=>{
+    const supplier=(p.supplier||'Sans fournisseur').trim()||'Sans fournisseur';
+    acc[supplier]=(acc[supplier]||0)+1;
+    return acc;
+  },{});
+
   let lastSupplier=null;
   body.innerHTML=list.map(p=>{
     const minimum=Number(p.alert_threshold||0);
     const supplier=(p.supplier||'Sans fournisseur').trim()||'Sans fournisseur';
     const supplierHeader=supplier!==lastSupplier
-      ? `<tr class="supplier-order-header"><td colspan="7"><strong>${esc(supplier)}</strong></td></tr>`
+      ? `<tr class="supplier-order-spacer"><td colspan="7"></td></tr>
+         <tr class="supplier-order-header"><td colspan="7">
+           <div class="supplier-order-banner">
+             <span class="supplier-order-name">${esc(supplier)}</span>
+             <span class="supplier-order-count">${supplierCounts[supplier]} produit${supplierCounts[supplier]>1?'s':''} à commander</span>
+           </div>
+         </td></tr>`
       : '';
     lastSupplier=supplier;
-    return supplierHeader+`<tr><td><div class="product-name"><strong>${esc(p.name)}</strong><small>${esc(p.categories?.name)||'—'}</small></div></td><td>${esc(p.supplier)||'—'}</td><td>${esc(p.supplier_reference)||'—'}</td><td><strong>${stockDisplay(p)}</strong></td><td>${minimum} ${esc(p.stock_package_type||'unité')}</td><td><span class="badge low">À commander</span></td><td><button class="edit-btn" onclick="openProduct('${p.id}')">Modifier</button></td></tr>`;
+    return supplierHeader+`<tr class="supplier-product-row"><td><div class="product-name"><strong>${esc(p.name)}</strong><small>${esc(p.categories?.name)||'—'}</small></div></td><td>${esc(p.supplier)||'—'}</td><td>${esc(p.supplier_reference)||'—'}</td><td><strong>${stockDisplay(p)}</strong></td><td>${minimum} ${esc(p.stock_package_type||'unité')}</td><td><span class="badge low">À commander</span></td><td><button class="edit-btn" onclick="openProduct('${p.id}')">Modifier</button></td></tr>`;
   }).join('')||'<tr><td colspan="7" class="empty">Aucun produit à commander 🎉</td></tr>';
 }
 
