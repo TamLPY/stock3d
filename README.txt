@@ -22,3 +22,9 @@ MISE À JOUR — LISTE DE COMMANDE AUTOMATIQUE
    - Stock minimum : niveau qui déclenche l'apparition dans « À commander ».
    - Stock cible : niveau souhaité après réapprovisionnement.
 4. La quantité recommandée est calculée automatiquement : Stock cible - Stock actuel.
+
+
+MISE A JOUR A COMMANDER PAR SEUIL
+- Le stock cible n'est plus utilisé dans l'interface.
+- Aucun nouveau SQL n'est nécessaire si la migration précédente a déjà été exécutée.
+- La liste A commander utilise uniquement le seuil / stock minimum existant.
