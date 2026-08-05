@@ -251,41 +251,56 @@ function renderConsumption(){
   list.forEach(m=>{
     const tech=m.technicians?.name||'Non attribué';
     const techKey=m.technician_id||'none';
-    if(!techGroups.has(techKey))techGroups.set(techKey,{name:tech,movements:0,products:new Map()});
+    if(!techGroups.has(techKey))techGroups.set(techKey,{name:tech,movements:0,value:0,products:new Map()});
     const group=techGroups.get(techKey);
     group.movements++;
+
+    const product=state.products.find(x=>x.id===m.product_id);
     const prodKey=m.product_id||m.products?.name||'unknown';
-    const prodName=m.products?.name||'Produit';
-    if(!group.products.has(prodKey))group.products.set(prodKey,{name:prodName,qty:0,movements:0,unit:consumptionUnit(m)});
+    const prodName=m.products?.name||product?.name||'Produit';
+    const qty=Number(m.quantity||0);
+    const packageQty=Math.max(Number(product?.price_package_quantity||product?.stock_package_quantity||1),1);
+    const packagePrice=Number(product?.price_amount||0);
+    const movementValue=packagePrice>0 ? (qty/packageQty)*packagePrice : 0;
+
+    group.value+=movementValue;
+    if(!group.products.has(prodKey))group.products.set(prodKey,{name:prodName,qty:0,movements:0,unit:consumptionUnit(m),value:0});
     const pg=group.products.get(prodKey);
-    pg.qty+=Number(m.quantity||0);pg.movements++;
+    pg.qty+=qty;pg.movements++;pg.value+=movementValue;
 
     if(!productMoves.has(prodKey))productMoves.set(prodKey,{name:prodName,movements:0});
     productMoves.get(prodKey).movements++;
   });
 
-  const groups=[...techGroups.values()].sort((a,b)=>b.movements-a.movements||a.name.localeCompare(b.name,'fr'));
+  const groups=[...techGroups.values()].sort((a,b)=>b.value-a.value||b.movements-a.movements||a.name.localeCompare(b.name,'fr'));
   const products=[...productMoves.values()].sort((a,b)=>b.movements-a.movements||a.name.localeCompare(b.name,'fr'));
   const top=groups[0],topProduct=products[0];
 
   el('consumptionMovementCount').textContent=list.length;
   el('consumptionTechCount').textContent=groups.filter(g=>g.name!=='Non attribué').length;
   el('consumptionTopTech').textContent=top?.name||'—';
-  el('consumptionTopTechNote').textContent=top?`${top.movements} sortie${top.movements>1?'s':''}`:'';
+  el('consumptionTopTechNote').textContent=top?`${top.movements} sortie${top.movements>1?'s':''} · ${euro(top.value)}`:'';
   el('consumptionTopProduct').textContent=topProduct?.name||'—';
   el('consumptionTopProductNote').textContent=topProduct?`${topProduct.movements} mouvement${topProduct.movements>1?'s':''} de sortie`:'';
 
   el('consumptionTechnicians').innerHTML=groups.map((g,index)=>{
-    const products=[...g.products.values()].sort((a,b)=>b.movements-a.movements||a.name.localeCompare(b.name,'fr'));
-    return `<article class="panel technician-consumption">
-      <div class="technician-consumption-head">
-        <div><span class="tech-rank">${index+1}</span><strong>${esc(g.name)}</strong></div>
-        <span class="tech-movement-count">${g.movements} sortie${g.movements>1?'s':''}</span>
+    const products=[...g.products.values()].sort((a,b)=>b.value-a.value||b.movements-a.movements||a.name.localeCompare(b.name,'fr'));
+    return `<article class="technician-card">
+      <div class="technician-card-head">
+        <span class="tech-rank">${index+1}</span>
+        <div class="technician-card-title">
+          <strong>${esc(g.name)}</strong>
+          <span>${euro(g.value)}</span>
+        </div>
+        <small>${g.movements} sortie${g.movements>1?'s':''}</small>
       </div>
-      <div class="technician-products">
-        ${products.map(p=>`<div class="technician-product-row">
+      <div class="technician-card-products">
+        ${products.map(p=>`<div class="technician-card-product">
           <div><strong>${esc(p.name)}</strong><small>${p.movements} mouvement${p.movements>1?'s':''}</small></div>
-          <span>${new Intl.NumberFormat('fr-FR',{maximumFractionDigits:2}).format(p.qty)} ${esc(p.unit)}</span>
+          <div class="tech-product-numbers">
+            <span>${new Intl.NumberFormat('fr-FR',{maximumFractionDigits:2}).format(p.qty)} ${esc(p.unit)}</span>
+            <strong>${euro(p.value)}</strong>
+          </div>
         </div>`).join('')}
       </div>
     </article>`;

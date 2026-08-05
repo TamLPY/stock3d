@@ -191,3 +191,59 @@ main{margin-left:240px;transition:margin-left .2s}
 .technician-product-row>span{font-weight:900;color:var(--red);text-align:right}
 @media(max-width:900px){.consumption-head{flex-direction:column}.consumption-filters{width:100%;min-width:0}.consumption-custom{flex-wrap:wrap}}
 @media(max-width:520px){.technician-consumption-head{align-items:flex-start;flex-direction:column}.tech-movement-count{white-space:normal}.technician-product-row{align-items:flex-start}}
+
+/* Cartes portrait — consommation techniciens */
+.consumption-list{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+  align-items:start;
+  gap:18px;
+}
+.technician-card{
+  min-height:390px;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:14px;
+  overflow:hidden;
+  box-shadow:0 6px 18px rgba(0,0,0,.08);
+}
+.technician-card-head{
+  min-height:128px;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  padding:18px;
+  text-align:center;
+  color:#fff;
+  background:#0b0b0b;
+  border-top:6px solid var(--red);
+}
+.technician-card-head .tech-rank{position:absolute;top:14px;left:14px}
+.technician-card-title{display:flex;align-items:baseline;justify-content:center;gap:8px;flex-wrap:wrap}
+.technician-card-title strong{font-size:20px;text-transform:uppercase;letter-spacing:.04em}
+.technician-card-title span{font-size:20px;font-weight:900;color:#fff;background:var(--red);padding:4px 8px;border-radius:8px}
+.technician-card-head>small{color:#ddd;font-weight:800}
+.technician-card-products{padding:4px 16px 12px}
+.technician-card-product{padding:13px 0;border-bottom:1px solid var(--line);display:grid;gap:8px}
+.technician-card-product:last-child{border-bottom:0}
+.technician-card-product>div:first-child{display:grid;gap:2px}
+.technician-card-product small{color:var(--muted)}
+.tech-product-numbers{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.tech-product-numbers span{font-weight:800}
+.tech-product-numbers strong{color:var(--red);font-size:15px}
+@media(max-width:620px){
+  .consumption-list{grid-template-columns:1fr}
+  .technician-card{min-height:0}
+}
+
+/* Pictogramme monochrome de navigation */
+.nav-picto{
+  width:18px;
+  height:18px;
+  flex:0 0 18px;
+  display:block;
+  color:currentColor;
+}
