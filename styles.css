@@ -243,19 +243,25 @@ main{margin-left:240px;transition:margin-left .2s}
 .nav-picto{
   width:18px;
   height:18px;
-  flex:0 0 18px;
-  display:block;
+  display:inline-block;
+  vertical-align:middle;
   color:currentColor;
 }
 
-/* Alignement précis du logo lorsque le menu est replié */
+
+
+/* Pictogramme Consommation : même comportement que les autres entrées du menu */
+.nav-btn[data-view="consumption"] .nav-picto{
+  display:inline-block!important;
+  vertical-align:-3px!important;
+  margin:0!important;
+}
 @media (min-width:901px){
-  body.sidebar-collapsed .sidebar-brand{
-    display:flex!important;
-    align-items:center!important;
-    justify-content:center!important;
+  body.sidebar-collapsed .nav-btn[data-view="consumption"]{
+    text-align:center!important;
   }
-  body.sidebar-collapsed .sidebar-brand .brand-mark{
-    transform:translateX(2px)!important;
+  body.sidebar-collapsed .nav-btn[data-view="consumption"] .nav-picto{
+    margin:0 auto!important;
+    vertical-align:middle!important;
   }
 }
