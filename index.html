@@ -26,6 +26,7 @@
         <button class="nav-btn active" data-view="dashboard">▦ <span>Tableau de bord</span></button>
         <button class="nav-btn" data-view="inventory">▤ <span>Inventaire</span></button>
         <button class="nav-btn" data-view="movements">⇄ <span>Mouvements</span></button>
+        <button class="nav-btn" data-view="orders">🛒 <span>À commander</span></button>
         <button class="nav-btn" data-view="settings">⚙ <span>Paramètres</span></button>
       </nav>
       <div class="sidebar-bottom"><span id="syncState">◌ Synchronisation…</span></div>
@@ -65,6 +66,17 @@
 
       <section id="movementsView" class="view">
         <div class="panel table-panel"><div class="table-wrap"><table><thead><tr><th>Date</th><th>Produit</th><th>Type</th><th>Quantité</th><th>Technicien</th></tr></thead><tbody id="movementsBody"></tbody></table></div></div>
+      </section>
+
+
+      <section id="ordersView" class="view">
+        <div class="panel order-summary">
+          <div><p class="eyebrow">RÉAPPROVISIONNEMENT</p><h2>Liste de commande automatique</h2><p>Les produits apparaissent ici lorsque leur stock atteint ou passe sous le stock minimum défini.</p></div>
+          <div class="order-summary-count"><strong id="orderCount">0</strong><span>produit à commander</span></div>
+        </div>
+        <div class="panel table-panel">
+          <div class="table-wrap"><table id="ordersTable"><thead><tr><th>Produit</th><th>Fournisseur</th><th>Réf. fournisseur</th><th>Stock actuel</th><th>Stock minimum</th><th>Stock cible</th><th>À commander</th><th>Action</th></tr></thead><tbody id="ordersBody"></tbody></table></div>
+        </div>
       </section>
 
       <section id="settingsView" class="view">

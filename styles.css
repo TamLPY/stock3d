@@ -108,3 +108,11 @@ main{margin-left:240px;transition:margin-left .2s}
 #inventoryTable.hide-col-9 tr > :nth-child(10),
 #inventoryTable.hide-col-10 tr > :nth-child(11){display:none!important}
 @media(max-width:900px){.toolbar{grid-template-columns:1fr}.columns-control{justify-self:stretch}.columns-btn{width:100%}.columns-panel{left:0;right:auto;width:min(320px,calc(100vw - 28px))}}
+
+/* Liste de commande automatique */
+.order-summary{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:18px}
+.order-summary h2{margin:4px 0 6px}.order-summary p{margin:0;color:var(--muted)}
+.order-summary-count{display:flex;flex-direction:column;align-items:flex-end;min-width:150px}.order-summary-count strong{font-size:34px;color:var(--red);line-height:1}.order-summary-count span{margin-top:6px;color:var(--muted);font-size:13px;font-weight:700}
+.order-qty{color:var(--red);font-size:15px}.field-help{color:var(--muted);font-size:11px;font-weight:500;line-height:1.3}
+#ordersTable{min-width:1050px}
+@media(max-width:900px){.order-summary{align-items:flex-start}.order-summary-count{min-width:auto}.order-summary-count strong{font-size:28px}}

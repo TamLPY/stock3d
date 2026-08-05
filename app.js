@@ -137,7 +137,7 @@ async function reloadMovements(){const {data}=await db.from('stock_movements').s
 async function reloadCategories(){const {data}=await db.from('categories').select('*').order('name');if(data){state.categories=data;renderAll();}}
 async function reloadTechnicians(){const {data}=await db.from('technicians').select('*').eq('active',true).order('name');if(data){state.technicians=data;renderSettings();}}
 
-function renderAll(){renderDashboard();renderInventory();renderMovements();renderSettings();populateFilters()}
+function renderAll(){renderDashboard();renderInventory();renderMovements();renderOrders();renderSettings();populateFilters()}
 function renderDashboard(){
   const low=state.products.filter(p=>status(p)[0]==='low'),out=state.products.filter(p=>status(p)[0]==='out');
   el('statProducts').textContent=state.products.length;el('statValue').textContent=euro(state.products.reduce((a,p)=>a+stockValue(p),0));el('statLow').textContent=low.length;el('statOut').textContent=out.length;
@@ -147,6 +147,26 @@ function renderDashboard(){
 function filtered(){const q=el('searchInput').value.toLowerCase(),cat=el('categoryFilter').value,st=el('statusFilter').value;return state.products.filter(p=>(!q||[p.supplier_reference,p.name,p.description,p.supplier,p.target_pest].join(' ').toLowerCase().includes(q))&&(!cat||p.category_id===cat)&&(!st||status(p)[0]===st));}
 function renderInventory(){const list=filtered();el('inventoryCount').textContent=`${list.length} produit${list.length>1?'s':''}`;el('inventoryValue').textContent=euro(list.reduce((a,p)=>a+stockValue(p),0));el('inventoryBody').innerHTML=list.map(p=>{const [k,l]=status(p);return `<tr><td><div class="actions"><button class="stock-btn plus" onclick="openMovement('${p.id}','entry')">+</button><button class="stock-btn minus" onclick="openMovement('${p.id}','exit')">−</button></div></td><td><div class="product-name"><strong>${esc(p.name)}</strong><small>${esc(p.description)||'—'}</small></div></td><td>${esc(p.categories?.name)||'—'}</td><td>${esc(p.supplier_reference)||'—'}</td><td>${esc(p.supplier)||'—'}</td><td>${esc(p.target_pest)||'—'}</td><td><strong>${stockDisplay(p)}</strong><small class="cell-note">${Number(p.stock_package_quantity||1)>1?`${Number(p.stock||0)*Number(p.stock_package_quantity||1)} ${esc(p.stock_content_unit||'unités')} au total`:''}</small></td><td>${priceLabel(p)}<small class="cell-note">${(p.price_type||'unit')==='package'?`${euro(baseUnitPrice(p))} / ${esc(p.stock_content_unit||'unité')}`:''}</small></td><td><strong>${euro(stockValue(p))}</strong></td><td><span class="badge ${k}">${l}</span></td><td><div class="actions"><button class="edit-btn" onclick="openProduct('${p.id}')">Modifier</button></div></td></tr>`}).join('')||'<tr><td colspan="11" class="empty">Aucun produit</td></tr>';requestAnimationFrame(()=>{syncInventoryTopScrollbar();enableColumnResize();applyHiddenColumns();})}
 function movementCard(m){return `<div class="movement-row"><span class="badge ${m.movement_type}">${m.movement_type==='entry'?'Entrée':'Sortie'}</span><div class="row-main"><strong>${esc(m.products?.name||'Produit')}</strong><small>${m.quantity} · ${esc(m.technicians?.name||'—')} · ${dt(m.created_at)}</small></div></div>`}
+function productsToOrder(){
+  return state.products
+    .filter(p=>Number(p.target_stock||0)>0 && Number(p.stock||0)<=Number(p.alert_threshold||0))
+    .sort((a,b)=>(a.supplier||'').localeCompare(b.supplier||'','fr') || (a.name||'').localeCompare(b.name||'','fr'));
+}
+function renderOrders(){
+  const body=el('ordersBody');
+  if(!body)return;
+  const list=productsToOrder();
+  const count=el('orderCount');
+  if(count)count.textContent=list.length;
+  body.innerHTML=list.map(p=>{
+    const current=Number(p.stock||0);
+    const minimum=Number(p.alert_threshold||0);
+    const target=Number(p.target_stock||0);
+    const qty=Math.max(target-current,0);
+    return `<tr><td><div class="product-name"><strong>${esc(p.name)}</strong><small>${esc(p.categories?.name)||'—'}</small></div></td><td>${esc(p.supplier)||'—'}</td><td>${esc(p.supplier_reference)||'—'}</td><td><strong>${stockDisplay(p)}</strong></td><td>${minimum} ${esc(p.stock_package_type||'unité')}</td><td>${target} ${esc(p.stock_package_type||'unité')}</td><td><strong class="order-qty">${qty} ${esc(p.stock_package_type||'unité')}</strong></td><td><button class="edit-btn" onclick="openProduct('${p.id}')">Modifier</button></td></tr>`;
+  }).join('')||'<tr><td colspan="8" class="empty">Aucun produit à commander 🎉</td></tr>';
+}
+
 function renderMovements(){el('movementsBody').innerHTML=state.movements.map(m=>`<tr><td>${dt(m.created_at)}</td><td>${esc(m.products?.name)||'—'}</td><td><span class="badge ${m.movement_type}">${m.movement_type==='entry'?'Entrée':'Sortie'}</span></td><td>${m.quantity}</td><td>${esc(m.technicians?.name)||'—'}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Aucun mouvement</td></tr>'}
 function renderSettings(){el('categoryList').innerHTML=state.categories.map(x=>`<div class="manage-item"><span>${esc(x.name)}</span><button onclick="deleteCategory('${x.id}')">Supprimer</button></div>`).join('');el('technicianList').innerHTML=state.technicians.map(x=>`<div class="manage-item"><span>${esc(x.name)}</span><button onclick="deleteTechnician('${x.id}')">Supprimer</button></div>`).join('')}
 function populateFilters(){const v=el('categoryFilter').value;el('categoryFilter').innerHTML='<option value="">Toutes les catégories</option>'+state.categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');el('categoryFilter').value=v}
@@ -193,7 +213,8 @@ window.openProduct=function(id=''){
       <label>Type de stock<select name="stock_package_type" id="stockPackageType">${options(PACKAGE_TYPES,stockType)}</select></label>
       <label id="stockPackageQuantityLabel">Quantité contenue<input name="stock_package_quantity" id="stockPackageQuantity" type="number" min="0.01" step="0.01" required value="${p.stock_package_quantity??1}"></label>
       <label>Unité contenue<select name="stock_content_unit">${options(CONTENT_UNITS,contentUnit)}</select></label>
-      <label>Seuil d’alerte<input name="alert_threshold" type="number" min="0" step="0.01" required value="${p.alert_threshold??0}"></label>
+      <label>Stock minimum<input name="alert_threshold" type="number" min="0" step="0.01" required value="${p.alert_threshold??0}"><small class="field-help">Déclenche l’alerte de réapprovisionnement.</small></label>
+      <label>Stock cible<input name="target_stock" type="number" min="0" step="0.01" required value="${p.target_stock??0}"><small class="field-help">Niveau de stock à atteindre après la commande.</small></label>
     </div></div>
     <div class="form-section"><h3>Prix</h3><div class="form-grid">
       <label>Le prix indiqué correspond à<select name="price_type" id="priceType"><option value="unit" ${priceType==='unit'?'selected':''}>Prix à l’unité</option><option value="package" ${priceType==='package'?'selected':''}>Prix du conditionnement</option></select></label>
@@ -220,7 +241,8 @@ window.openProduct=function(id=''){
   form.onsubmit=async(e)=>{
     e.preventDefault();
     const data=Object.fromEntries(new FormData(e.target));
-    ['stock','alert_threshold','stock_package_quantity','price_amount','price_package_quantity'].forEach(k=>data[k]=Number(data[k]));
+    ['stock','alert_threshold','target_stock','stock_package_quantity','price_amount','price_package_quantity'].forEach(k=>data[k]=Number(data[k]));
+    if(data.target_stock>0 && data.target_stock<data.alert_threshold){toast('Le stock cible doit être supérieur ou égal au stock minimum.');return;}
     data.category_id=data.category_id||null;
     // Référence interne conservée uniquement en arrière-plan pour compatibilité avec la base.
     data.internal_reference = id ? (p.internal_reference || `AUTO-${id}`) : `AUTO-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
