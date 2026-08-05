@@ -117,7 +117,7 @@ async function loadAll(){
     db.from('products').select('*,categories(name)').order('name'),
     db.from('categories').select('*').order('name'),
     db.from('technicians').select('*').eq('active',true).order('name'),
-    db.from('stock_movements').select('*,products(name,internal_reference),technicians(name)').order('created_at',{ascending:false}).limit(500)
+    db.from('stock_movements').select('*,products(name),technicians(name)').order('created_at',{ascending:false}).limit(500)
   ]);
   const err=p.error||c.error||t.error||m.error;if(err){toast(err.message);setSync(true);return;}
   state.products=p.data;state.categories=c.data;state.technicians=t.data;state.movements=m.data;renderAll();setSync(true);
@@ -133,7 +133,7 @@ function subscribeRealtime(){
 }
 function setSync(ok){el('syncState').textContent=ok?'● Synchronisé':'◌ Synchronisation…'}
 async function reloadProducts(){const {data}=await db.from('products').select('*,categories(name)').order('name');if(data){state.products=data;renderAll();}}
-async function reloadMovements(){const {data}=await db.from('stock_movements').select('*,products(name,internal_reference),technicians(name)').order('created_at',{ascending:false}).limit(500);if(data){state.movements=data;renderMovements();renderDashboard();}}
+async function reloadMovements(){const {data}=await db.from('stock_movements').select('*,products(name),technicians(name)').order('created_at',{ascending:false}).limit(500);if(data){state.movements=data;renderMovements();renderDashboard();}}
 async function reloadCategories(){const {data}=await db.from('categories').select('*').order('name');if(data){state.categories=data;renderAll();}}
 async function reloadTechnicians(){const {data}=await db.from('technicians').select('*').eq('active',true).order('name');if(data){state.technicians=data;renderSettings();}}
 
@@ -144,10 +144,10 @@ function renderDashboard(){
   el('dashboardAlerts').innerHTML=[...out,...low].slice(0,8).map(p=>`<div class="alert-row"><span class="badge ${status(p)[0]}">${status(p)[1]}</span><div class="row-main"><strong>${esc(p.name)}</strong><small>Stock : ${stockDisplay(p)} · seuil : ${p.alert_threshold}</small></div></div>`).join('')||'<div class="empty">Aucune alerte</div>';
   el('recentMovements').innerHTML=state.movements.slice(0,8).map(m=>movementCard(m)).join('')||'<div class="empty">Aucun mouvement</div>';
 }
-function filtered(){const q=el('searchInput').value.toLowerCase(),cat=el('categoryFilter').value,st=el('statusFilter').value;return state.products.filter(p=>(!q||[p.supplier_reference,p.internal_reference,p.name,p.description,p.supplier,p.target_pest].join(' ').toLowerCase().includes(q))&&(!cat||p.category_id===cat)&&(!st||status(p)[0]===st));}
+function filtered(){const q=el('searchInput').value.toLowerCase(),cat=el('categoryFilter').value,st=el('statusFilter').value;return state.products.filter(p=>(!q||[p.supplier_reference,p.name,p.description,p.supplier,p.target_pest].join(' ').toLowerCase().includes(q))&&(!cat||p.category_id===cat)&&(!st||status(p)[0]===st));}
 function renderInventory(){const list=filtered();el('inventoryCount').textContent=`${list.length} produit${list.length>1?'s':''}`;el('inventoryValue').textContent=euro(list.reduce((a,p)=>a+stockValue(p),0));el('inventoryBody').innerHTML=list.map(p=>{const [k,l]=status(p);return `<tr><td><div class="actions"><button class="stock-btn plus" onclick="openMovement('${p.id}','entry')">+</button><button class="stock-btn minus" onclick="openMovement('${p.id}','exit')">−</button></div></td><td><div class="product-name"><strong>${esc(p.name)}</strong><small>${esc(p.description)||'—'}</small></div></td><td>${esc(p.categories?.name)||'—'}</td><td>${esc(p.supplier_reference)||'—'}</td><td>${esc(p.supplier)||'—'}</td><td>${esc(p.target_pest)||'—'}</td><td><strong>${stockDisplay(p)}</strong><small class="cell-note">${Number(p.stock_package_quantity||1)>1?`${Number(p.stock||0)*Number(p.stock_package_quantity||1)} ${esc(p.stock_content_unit||'unités')} au total`:''}</small></td><td>${priceLabel(p)}<small class="cell-note">${(p.price_type||'unit')==='package'?`${euro(baseUnitPrice(p))} / ${esc(p.stock_content_unit||'unité')}`:''}</small></td><td><strong>${euro(stockValue(p))}</strong></td><td><span class="badge ${k}">${l}</span></td><td><div class="actions"><button class="edit-btn" onclick="openProduct('${p.id}')">Modifier</button></div></td></tr>`}).join('')||'<tr><td colspan="11" class="empty">Aucun produit</td></tr>';requestAnimationFrame(()=>{syncInventoryTopScrollbar();enableColumnResize();applyHiddenColumns();})}
 function movementCard(m){return `<div class="movement-row"><span class="badge ${m.movement_type}">${m.movement_type==='entry'?'Entrée':'Sortie'}</span><div class="row-main"><strong>${esc(m.products?.name||'Produit')}</strong><small>${m.quantity} · ${esc(m.technicians?.name||'—')} · ${dt(m.created_at)}</small></div></div>`}
-function renderMovements(){el('movementsBody').innerHTML=state.movements.map(m=>`<tr><td>${dt(m.created_at)}</td><td>${esc(m.products?.internal_reference)||'—'}</td><td>${esc(m.products?.name)||'—'}</td><td><span class="badge ${m.movement_type}">${m.movement_type==='entry'?'Entrée':'Sortie'}</span></td><td>${m.quantity}</td><td>${esc(m.technicians?.name)||'—'}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">Aucun mouvement</td></tr>'}
+function renderMovements(){el('movementsBody').innerHTML=state.movements.map(m=>`<tr><td>${dt(m.created_at)}</td><td>${esc(m.products?.name)||'—'}</td><td><span class="badge ${m.movement_type}">${m.movement_type==='entry'?'Entrée':'Sortie'}</span></td><td>${m.quantity}</td><td>${esc(m.technicians?.name)||'—'}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Aucun mouvement</td></tr>'}
 function renderSettings(){el('categoryList').innerHTML=state.categories.map(x=>`<div class="manage-item"><span>${esc(x.name)}</span><button onclick="deleteCategory('${x.id}')">Supprimer</button></div>`).join('');el('technicianList').innerHTML=state.technicians.map(x=>`<div class="manage-item"><span>${esc(x.name)}</span><button onclick="deleteTechnician('${x.id}')">Supprimer</button></div>`).join('')}
 function populateFilters(){const v=el('categoryFilter').value;el('categoryFilter').innerHTML='<option value="">Toutes les catégories</option>'+state.categories.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');el('categoryFilter').value=v}
 
@@ -182,7 +182,6 @@ window.openProduct=function(id=''){
   modal(id?'Modifier le produit':'Ajouter un produit','FICHE PRODUIT',`<form id="productForm">
     <div class="form-grid">
       <label>Référence fournisseur<input name="supplier_reference" value="${esc(safe(p.supplier_reference))}"></label>
-      <label>Référence interne<input name="internal_reference" required value="${esc(safe(p.internal_reference))}"></label>
       <label>Nom du produit<input name="name" required value="${esc(safe(p.name))}"></label>
       <label>Description<input name="description" value="${esc(safe(p.description))}"></label>
       <label>Catégorie<select name="category_id"><option value="">—</option>${state.categories.map(c=>`<option value="${c.id}" ${p.category_id===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></label>
@@ -223,6 +222,8 @@ window.openProduct=function(id=''){
     const data=Object.fromEntries(new FormData(e.target));
     ['stock','alert_threshold','stock_package_quantity','price_amount','price_package_quantity'].forEach(k=>data[k]=Number(data[k]));
     data.category_id=data.category_id||null;
+    // Référence interne conservée uniquement en arrière-plan pour compatibilité avec la base.
+    data.internal_reference = id ? (p.internal_reference || `AUTO-${id}`) : `AUTO-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
     if(data.price_type==='unit'){
       data.price_package_type=null;
       data.price_package_quantity=1;
